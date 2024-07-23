@@ -47,6 +47,10 @@ class User(AbstractUser):
         ADMIN = 'ADMIN'
         REGULAR = 'REGULAR'
 
+        @classmethod
+        def choices(cls):
+            return [(key.name, key.value) for key in cls]
+
     user_id = models.AutoField(primary_key=True)
     user_type = models.CharField(
         max_length=10,
