@@ -1,28 +1,33 @@
-import enum
-
+from enum import IntEnum
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 
 class Category(models.Model):
-    category_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        db_table = "category"
 
 
 class Tag(models.Model):
-    tag_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        db_table = "tag"
+
 
 class Poll(models.Model):
-    poll_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
     question = models.TextField()
     expiry_date = models.DateTimeField()
@@ -32,26 +37,32 @@ class Poll(models.Model):
     def __str__(self):
         return self.question
 
+    class Meta:
+        db_table = "poll"
+
 
 class Choice(models.Model):
-    choice_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     choice_text = models.CharField(max_length=200)
 
     def __str__(self):
         return self.choice_text
 
+    class Meta:
+        db_table = "choice"
+
 
 class User(AbstractUser):
-    class UserTypeEnum(enum.Enum):
-        ADMIN = 'ADMIN'
-        REGULAR = 'REGULAR'
+    class UserTypeEnum(IntEnum):
+        REGULAR = 1
+        ADMIN = 2
 
         @classmethod
         def choices(cls):
-            return [(key.name, key.value) for key in cls]
+            return [(key.value, key.name) for key in cls]
 
-    user_id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     user_type = models.CharField(
         max_length=10,
         choices=UserTypeEnum.choices(),
@@ -60,6 +71,9 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    class Meta:
+        db_table = "user"
 
 
 class UserPollHistory(models.Model):
@@ -70,8 +84,12 @@ class UserPollHistory(models.Model):
 
     class Meta:
         unique_together = ('user', 'poll')
+        db_table = "user_poll_history"
 
 
 class UserTagHistory(models.Model):
     user = models.ForeignKey(User, primary_key=True, on_delete=models.CASCADE)
     tag_history = models.JSONField(default=dict)
+
+    class Meta:
+        db_table = "user_tag_history"
