@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'django_site.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'polls_db',
+        'NAME': 'polls',
         'USER': 'root',
         'PASSWORD': '1064#gX@',
         'HOST': 'localhost',
@@ -124,3 +124,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = 'polls.User'
