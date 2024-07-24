@@ -16,7 +16,7 @@ class UserPollHistory(models.Model):
 
 
 class UserTagHistory(models.Model):
-    user = models.ForeignKey(User, primary_key=True, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, primary_key=True, on_delete=models.CASCADE)
     tag_history = models.JSONField(default=dict)
 
     class Meta:
