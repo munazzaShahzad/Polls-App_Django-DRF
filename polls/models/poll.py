@@ -2,6 +2,7 @@ from django.db import models
 
 from .category import Category
 from .tag import Tag
+from .user import User
 
 
 class Poll(models.Model):
@@ -11,6 +12,7 @@ class Poll(models.Model):
     expiry_date = models.DateTimeField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, related_name='polls', blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_polls')
 
     def __str__(self):
         return self.question
