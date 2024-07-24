@@ -1,6 +1,7 @@
+from enum import IntEnum
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from enum import IntEnum
 
 
 class User(AbstractUser):
@@ -14,7 +15,6 @@ class User(AbstractUser):
 
     id = models.AutoField(primary_key=True)
     user_type = models.IntegerField(
-        max_length=10,
         choices=UserTypeEnum.choices(),
         default=UserTypeEnum.REGULAR.value
     )
