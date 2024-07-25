@@ -1,15 +1,25 @@
+import datetime
+
+from django.utils import timezone
 from django.db import models
+from django.core.validators import MinLengthValidator
+from django.core.exceptions import ValidationError
 
 from .category import Category
 from .tag import Tag
 from .user import User
 
 
+def validate_expiry_date(value):
+    if value <= timezone.now() + datetime.timedelta(days=1):
+        raise ValidationError("Expiry date must be at least one day in the future.")
+
+
 class Poll(models.Model):
     id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
     question = models.TextField()
-    expiry_date = models.DateTimeField()
+    expiry_date = models.DateTimeField(validators=[validate_expiry_date])
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, related_name='polls', blank=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_polls')
@@ -24,7 +34,7 @@ class Poll(models.Model):
 class Choice(models.Model):
     id = models.AutoField(primary_key=True)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=200)
+    choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
 
     def __str__(self):
         return self.choice_text
