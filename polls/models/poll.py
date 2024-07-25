@@ -15,6 +15,11 @@ def validate_expiry_date(value):
         raise ValidationError("Expiry date must be at least one day in the future.")
 
 
+def validate_admin_user(user):
+    if user.user_type != 2:
+        raise ValidationError("Only admin users can create polls.")
+
+
 class Poll(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
@@ -22,7 +27,8 @@ class Poll(models.Model):
     expiry_date = models.DateTimeField(validators=[validate_expiry_date])
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, related_name='polls', blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_polls')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                   related_name='created_polls', validators=[validate_admin_user])
 
     def __str__(self):
         return self.question
