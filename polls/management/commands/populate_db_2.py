@@ -12,34 +12,34 @@ class Command(BaseCommand):
         model.objects.bulk_update(objects, fields)
 
     def handle(self, *args, **kwargs):
-        # # Category objects
-        # categories = [
-        #     Category(name='Business'),
-        #     Category(name='Travel'),
-        #     Category(name='Sports'),
-        #     Category(name='Entertainment')
-        # ]
-        #
-        # self.create_objects(Category, categories)
-        #
-        # # Tag objects
-        # tags = [
-        #     Tag(name='Blockchain'),
-        #     Tag(name='Virtual Reality'),
-        #     Tag(name='Startups'),
-        #     Tag(name='Physical Activity')
-        # ]
-        #
-        # self.create_objects(Tag, tags)
-        #
-        # # Admin Users
-        # admin_users = [
-        #     User(username='junaid_khan', password='123_Junaid', first_name='Junaid',
-        #          last_name='Khan', user_type=2)
-        # ]
-        #
-        # self.create_objects(User, admin_users)
-        #
+        # Category objects
+        categories = [
+            Category(name='Business'),
+            Category(name='Travel'),
+            Category(name='Sports'),
+            Category(name='Entertainment')
+        ]
+
+        self.create_objects(Category, categories)
+
+        # Tag objects
+        tags = [
+            Tag(name='Blockchain'),
+            Tag(name='Virtual Reality'),
+            Tag(name='Startups'),
+            Tag(name='Physical Activity')
+        ]
+
+        self.create_objects(Tag, tags)
+
+        # Admin Users
+        admin_users = [
+             User(username='junaid_khan', password='123_Junaid', first_name='Junaid',
+                  last_name='Khan', user_type=2)
+        ]
+
+        self.create_objects(User, admin_users)
+
         # Get specific categories and tags needed for the polls
         business_category = Category.objects.get(name='Business')
         travel_category = Category.objects.get(name='Travel')
