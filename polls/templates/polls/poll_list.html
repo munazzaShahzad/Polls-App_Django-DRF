@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poll List</title>
+</head>
+<body>
+    <h1>Poll List</h1>
+    <ul>
+        {% for poll in polls %}
+            <li><a href="{% url 'polls:poll_detail' poll.pk %}">{{ poll.title }}</a></li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'polls:poll_create' %}">Create New Poll</a>
+</body>
+</html>
