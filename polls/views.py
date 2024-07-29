@@ -1,33 +1,58 @@
-from django.http import HttpResponse
-from django.template import loader
-from django.http import Http404
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import View
+from django.forms import ModelForm
 
-#from .models import Question
-
-
-def index(request):
-    #latest_question_list = Question.objects.order_by("-pub_date")[:5]
-    template = loader.get_template("polls/index.html")
-    context = {
-        #"latest_question_list": latest_question_list,
-    }
-    return HttpResponse(template.render(context, request))
+from .models import Poll
 
 
-def detail(request, question_id):
-    try:
-        #question = Question.objects.get(pk=question_id)
-        pass
-    except :#Question.DoesNotExist:
-        raise Http404("Question does not exist")
-    return render(request, "polls/detail.html", {"question": ""})#question})
+class PollForm(ModelForm):
+    class Meta:
+        model = Poll
+        fields = ['title', 'question', 'expiry_date', 'category', 'tags', 'created_by']
 
 
-def results(request, question_id):
-    response = "You're looking at the results of question %s."
-    return HttpResponse(response % question_id)
+class PollListView(View):
+    def get(self, request, *args, **kwargs):
+        polls = Poll.objects.all()
+        return render(request, 'polls/poll_list.html', {'polls': polls})
 
 
-def vote(request, question_id):
-    return HttpResponse("You're voting on question %s." % question_id)
+@method_decorator(csrf_exempt, name='dispatch')
+class PollDetailView(View):
+    def get(self, request, pk=None, *args, **kwargs):
+        if pk:
+            poll = get_object_or_404(Poll, pk=pk)
+            return render(request, 'polls/poll_detail.html', {'poll': poll})
+        else:
+            form = PollForm()
+            return render(request, 'polls/poll_form.html', {'form': form})
+
+    def post(self, request, *args, **kwargs):
+        form = PollForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('polls:poll_list')
+        return render(request, 'polls/poll_form.html', {'form': form})
+
+    def put(self, request, pk, *args, **kwargs):
+        poll = get_object_or_404(Poll, pk=pk)
+        form = PollForm(request.POST, instance=poll)
+        if form.is_valid():
+            form.save()
+            return redirect('polls:poll_detail', pk=poll.pk)
+        return render(request, 'polls/poll_form.html', {'form': form})
+
+    def patch(self, request, pk, *args, **kwargs):
+        poll = get_object_or_404(Poll, pk=pk)
+        form = PollForm(request.POST, instance=poll)
+        if form.is_valid():
+            form.save()
+            return redirect('polls:poll_detail', pk=poll.pk)
+        return render(request, 'polls/poll_form.html', {'form': form})
+
+    def delete(self, request, pk, *args, **kwargs):
+        poll = get_object_or_404(Poll, pk=pk)
+        poll.delete()
+        return redirect('polls:poll_list')

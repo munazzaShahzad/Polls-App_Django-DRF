@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poll Detail</title>
+</head>
+<body>
+    <h1>{{ poll.title }}</h1>
+    <p>{{ poll.question }}</p>
+
+    <p>Category: {{ poll.category.name }}</p>
+    <p>Created By: {{ poll.created_by.username }}</p>
+    <a href="{% url 'polls:poll_edit' poll.pk %}">Edit Poll</a>
+    <form method="post" action="{% url 'polls:poll_delete' poll.pk %}">
+        {% csrf_token %}
+        <button type="submit">Delete Poll</button>
+    </form>
+    <p>Expiry Date: {{ poll.expiry_date }}</p>
+    <p>Tags:
+        {% for tag in poll.tags.all %}
+        {{ tag.name }}
+        {% endfor %}
+    </p>
+    <a href="{% url 'polls:poll_list' %}">Back to Poll List</a>
+</body>
+</html>
