@@ -7,6 +7,7 @@ from django.forms import ModelForm
 from .models import Poll
 
 
+# poll form
 class PollForm(ModelForm):
     class Meta:
         model = Poll
