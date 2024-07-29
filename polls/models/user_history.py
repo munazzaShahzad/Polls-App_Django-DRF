@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-
 from .user import User
 from .poll import Poll, Choice
 
