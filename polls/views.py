@@ -3,6 +3,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.forms import ModelForm
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Poll
 
@@ -14,7 +15,7 @@ class PollForm(ModelForm):
         fields = ['title', 'question', 'expiry_date', 'category', 'tags', 'created_by']
 
 
-class PollListView(View):
+class PollListView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         polls = Poll.objects.all()
         return render(request, 'polls/poll_list.html', {'polls': polls})
