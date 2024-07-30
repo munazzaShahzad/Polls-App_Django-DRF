@@ -31,7 +31,7 @@ class Poll(models.Model):
                                    related_name='created_polls', validators=[validate_admin_user])
 
     def __str__(self):
-        return self.question
+        return str(self.id) + ': ' + str(self.title)
 
     class Meta:
         db_table = "poll"
@@ -43,7 +43,7 @@ class Choice(models.Model):
     choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
 
     def __str__(self):
-        return self.choice_text
+        return str(self.id) + ': ' + str(self.choice_text)
 
     class Meta:
         db_table = "choice"

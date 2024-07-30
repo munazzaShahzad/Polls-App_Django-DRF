@@ -22,7 +22,7 @@ class User(AbstractUser):
     )
 
     def __str__(self):
-        return self.username
+        return str(self.id) + ': ' + str(self.username)
 
     class Meta:
         db_table = "user"

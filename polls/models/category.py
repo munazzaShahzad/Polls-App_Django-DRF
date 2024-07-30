@@ -7,7 +7,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100, validators=[MinLengthValidator(3)])
 
     def __str__(self):
-        return self.name
+        return str(self.id) + ': ' + str(self.name)
 
     class Meta:
         db_table = "category"
