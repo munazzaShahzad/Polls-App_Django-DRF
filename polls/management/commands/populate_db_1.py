@@ -93,6 +93,8 @@ class Command(BaseCommand):
         education_reform_tag = Tag.objects.get(name='Education Reform')
         scientific_research_tag = Tag.objects.get(name='Scientific Research')
 
+        admin_users = [User.objects.get(username='usman_tariq'), User.objects.get(username='bilal_rahman')]
+
         # Poll objects
         polls = [
             Poll(title='Best Advancements in AI',
@@ -114,6 +116,13 @@ class Command(BaseCommand):
         ]
 
         self.create_objects(Poll, polls)
+
+        polls = [
+            Poll.objects.get(title='Best Advancements in AI'),
+            Poll.objects.get(title='Top Environmental Issues'),
+            Poll.objects.get(title='Important Health Topics'),
+            Poll.objects.get(title='Critical Education Reforms')
+        ]
 
         # Create Choices for the polls
         choices = [
