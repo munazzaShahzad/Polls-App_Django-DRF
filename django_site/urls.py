@@ -17,8 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from polls.views import restrict_login_error_view
+
 urlpatterns = [
     path("polls/", include("polls.urls")),
     path("admin/", admin.site.urls),
+    path('accounts/restrict_login', restrict_login_error_view, name='restrict_login_error'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]

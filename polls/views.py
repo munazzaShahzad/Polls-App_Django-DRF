@@ -58,3 +58,7 @@ class PollDetailView(View):
         poll = get_object_or_404(Poll, pk=pk)
         poll.delete()
         return redirect('polls:poll_list')
+
+
+def restrict_login_error_view(request):
+    return render(request, 'registration/restrict_login_error.html')
