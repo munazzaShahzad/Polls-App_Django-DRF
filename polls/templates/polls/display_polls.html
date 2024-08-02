@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<ul>
+    {% for poll in polls %}
+        <li><a href="{% url 'polls:poll_detail' poll.id %}">{{ poll.title }}</a> - {{ poll.question }}</li>
+    {% endfor %}
+</ul>
