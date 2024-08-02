@@ -1,10 +1,11 @@
 from django.contrib import admin
 
-from .models import Poll, Choice, User, Category, Tag, UserTagHistory, UserPollHistory
+from .models import Poll, Choice, User, Category, Tag, UserTagHistory, UserPollHistory, UserProfile
 
 admin.site.register(Poll)
 admin.site.register(Choice)
 admin.site.register(User)
+admin.site.register(UserProfile)
 admin.site.register(Category)
 admin.site.register(Tag)
 admin.site.register(UserTagHistory)
