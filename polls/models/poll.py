@@ -21,6 +21,9 @@ def validate_admin_user(user):
 
 
 class Poll(models.Model):
+    """
+    A single poll.
+    """
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
     question = models.TextField()
@@ -38,6 +41,9 @@ class Poll(models.Model):
 
 
 class Choice(models.Model):
+    """
+    A choice in a poll.
+    """
     id = models.AutoField(primary_key=True)
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
     choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])

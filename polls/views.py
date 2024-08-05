@@ -65,7 +65,7 @@ class ProfileView(LoginRequiredMixin, View):
         user = request.user
         profile = UserProfile.objects.get(user=user)
 
-        # Polls user has voted in
+        # Recent Polls user has voted in
         user_poll_history = user.userpollhistory_set.all().order_by('-voting_time')[:5]
         voted_poll_ids = [history.poll.id for history in user_poll_history]
         last_voted_polls = Poll.objects.filter(id__in=voted_poll_ids)

@@ -6,6 +6,9 @@ from .user import User
 
 
 class UserProfile(models.Model):
+    """
+    Defines profile of user.
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     name = models.CharField(max_length=255)
     email = models.EmailField()

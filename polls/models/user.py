@@ -8,6 +8,9 @@ from django.dispatch import receiver
 
 
 class User(AbstractUser):
+    """
+    Custom user object
+    """
     class UserTypeEnum(IntEnum):
         REGULAR = 1
         ADMIN = 2
