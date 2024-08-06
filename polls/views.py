@@ -4,8 +4,48 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.forms import ModelForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import Group
+from rest_framework import permissions, viewsets
+from rest_framework.response import Response
 
-from .models import Poll, Category, Tag, UserProfile, UserTagHistory
+from .serializers import GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer
+from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows tags to be viewed or edited.
+    """
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ChoiceViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows Polls to be viewed or edited.
+    """
+    queryset = Choice.objects.all()
+    serializer_class = ChoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class PollViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows Polls to be viewed or edited.
+    """
+    queryset = Poll.objects.all()
+    serializer_class = PollSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Group.objects.all().order_by('name')
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 # poll form
@@ -97,3 +137,43 @@ class ProfileView(LoginRequiredMixin, View):
             })
 
         return render(request, 'polls/profile.html', context)
+
+
+# tag view functions (with serializer)
+def tag_list(request):
+    """
+    Display list of tags, or create a new tag
+    """
+    if request.method == 'GET':
+        tags = Tag.objects.all().order_by('name')
+        ser = TagSerializer(tags, many=True)
+        return Response(ser.data)
+    elif request.method == 'POST':
+        ser = TagSerializer(data=request.data)
+        if ser.is_valid():
+            ser.save()
+            return Response(ser.data, status=201)
+        return Response(ser.errors, status=400)
+
+
+def tag_detail(request, pk):
+    """
+    Retrieve, Update or Delete a Tag
+    """
+    try:
+        tag = Tag.objects.get(pk=pk)
+    except Tag.DoesNotExist:
+        return Response(status=404)
+
+    if request.method == 'GET':
+        ser = TagSerializer(tag)
+        return Response(ser.data)
+    elif request.method == 'PUT':
+        ser = TagSerializer(tag, data=request.data)
+        if ser.is_valid():
+            ser.save()
+            return Response(ser.data)
+        return Response(ser.errors, status=400)
+    elif request.method == 'DELETE':
+        tag.delete()
+        return Response(status=204)
