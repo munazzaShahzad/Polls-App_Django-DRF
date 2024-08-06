@@ -12,7 +12,7 @@
     <h3>Polls</h3>
     <p><a href="{% url 'polls:poll_list' %}">View All Polls</a></p>
 
-    <h3>Last 5 Polls You Voted In</h3>
+    <h3>Recent Polls You Voted In</h3>
     {% if last_voted_polls %}
         {% show_polls last_voted_polls %}
     {% else %}
