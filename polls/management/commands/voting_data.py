@@ -13,13 +13,13 @@ class Command(BaseCommand):
 
         # Tuple for (Poll title, choice text) that admin user has voted
         admin_votes = [
-            ('Blockchain', 'Voting Systems'),
+            ('Impact of Blockchain', 'Voting Systems'),
             ('Favorite Travel Destinations', 'Edinburgh')
         ]
 
         # Tuple for (Poll title, choice text) that regular user has voted
         regular_votes = [
-            ('Blockchain', 'Financial Services'),
+            ('Impact of Blockchain', 'Financial Services'),
             ('Top Sports Events', 'Olympics'),
             ('Important Health Topics', 'Nutrition and Diet'),
             ('Critical Education Reforms', 'Student Assessment Methods')
