@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+{% load custom_tags %}
+<html>
+<head>
+    <title>User Profile</title>
+</head>
+<body>
+    <h2>{{ profile.name }}'s Profile</h2>
+    <p>Email: {{ profile.email }}</p>
+    <p>Role: {{ profile.role }}</p>
+
+    <h3>Polls</h3>
+    <p><a href="{% url 'polls:poll_list' %}">View All Polls</a></p>
+
+    <h3>Recent Polls You Voted In</h3>
+    {% if last_voted_polls %}
+        {% show_polls last_voted_polls %}
+    {% else %}
+        <p>You have not voted in any polls yet.</p>
+    {% endif %}
+
+    {% if top_tags %}
+        <h3>Top Interests</h3>
+        <ul>
+            {% for tag in top_tags %}
+                <li>{{ tag.name }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if profile.role == "Admin" %}
+        {% if created_polls %}
+            <h3>Your Created Polls</h3>
+            {% show_polls created_polls %}
+        {% endif %}
+
+        {% if categories %}
+            <h3>Categories</h3>
+            <ul>
+                {% for category in categories %}
+                    <li>{{ category.name }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if tags %}
+            <h3>Tags</h3>
+            <ul>
+                {% for tag in tags %}
+                    <li>{{ tag.name }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+
+    <p><a href="{% url 'logout' %}">Logout</a></p>
+
+</body>
+</html>

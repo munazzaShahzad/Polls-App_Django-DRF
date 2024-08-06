@@ -7,19 +7,19 @@
     <h1>{{ poll.title }}</h1>
     <p>{{ poll.question }}</p>
 
-    <p>Category: {{ poll.category.name }}</p>
-    <p>Created By: {{ poll.created_by.username }}</p>
-    <a href="{% url 'polls:poll_edit' poll.pk %}">Edit Poll</a>
-    <form method="post" action="{% url 'polls:poll_delete' poll.pk %}">
-        {% csrf_token %}
-        <button type="submit">Delete Poll</button>
-    </form>
-    <p>Expiry Date: {{ poll.expiry_date }}</p>
-    <p>Tags:
-        {% for tag in poll.tags.all %}
-        {{ tag.name }}
+    <h3>Choices</h3>
+    <ul>
+        {% for choice in poll.choice_set.all %}
+            <li>{{ choice.choice_text }}</li>
         {% endfor %}
-    </p>
+    </ul>
+    <p>Expiry Date: {{ poll.expiry_date }}</p>
+    <ul>Tags:
+        {% for tag in poll.tags.all %}
+            <li>{{ tag.name }}</li>
+        {% endfor %}
+    </ul>
     <a href="{% url 'polls:poll_list' %}">Back to Poll List</a>
+    <a href="{% url 'polls:profile' %}">Back to Profile</a>
 </body>
 </html>

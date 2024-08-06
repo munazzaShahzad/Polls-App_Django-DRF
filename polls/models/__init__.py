@@ -3,3 +3,4 @@ from .tag import Tag
 from .poll import Poll, Choice
 from .user import User
 from .user_history import UserPollHistory, UserTagHistory
+from .user_profile import UserProfile
