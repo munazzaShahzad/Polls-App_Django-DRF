@@ -1,7 +1,8 @@
 from django.db import models
-from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 from .user import User
 from .poll import Poll, Choice
@@ -37,3 +38,18 @@ class UserTagHistory(models.Model):
     class Meta:
         db_table = "user_tag_history"
         verbose_name_plural = "User Tag History"
+
+
+@receiver(post_save, sender=UserPollHistory)
+def update_tag_history(sender, instance, created, **kwargs):
+    if created:
+        user = instance.user
+        user_tag_history, _ = UserTagHistory.objects.get_or_create(user=user)
+
+        for tag in instance.poll.tags.all():
+            if str(tag.id) in user_tag_history.tag_history:
+                user_tag_history.tag_history[str(tag.id)] += 1
+            else:
+                user_tag_history.tag_history[str(tag.id)] = 1
+
+        user_tag_history.save()
