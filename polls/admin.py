@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib import admin
+from django.utils import timezone
 
 from .models import Poll, Choice, User, Category, Tag, UserTagHistory, UserPollHistory, UserProfile
 
@@ -35,6 +36,14 @@ class PollAdmin(admin.ModelAdmin):
     list_display = ["id", "title"]
     ordering = ["-expiry_date"]
     list_filter = [ExpiredPollsFilter]
+    actions = ["close_polls"]
+
+    @admin.action(description="Close selected polls")
+    def close_polls(self, request, queryset):
+        for poll in queryset:
+            if poll.expiry_date > timezone.now():
+                poll.expiry_date = timezone.now()
+                poll.save()
 
 
 admin.site.register(Poll, PollAdmin)
