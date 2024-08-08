@@ -5,11 +5,21 @@ from django.views.generic import View
 from django.forms import ModelForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, viewsets, status
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
 
-from .serializers import GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer
+from .serializers import GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer, UserSerializer
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows tags to be viewed or edited.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -37,6 +47,9 @@ class PollViewSet(viewsets.ModelViewSet):
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -140,6 +153,8 @@ class ProfileView(LoginRequiredMixin, View):
 
 
 # tag view functions (with serializer)
+
+@api_view(['GET', 'POST'])
 def tag_list(request):
     """
     Display list of tags, or create a new tag
@@ -152,10 +167,11 @@ def tag_list(request):
         ser = TagSerializer(data=request.data)
         if ser.is_valid():
             ser.save()
-            return Response(ser.data, status=201)
-        return Response(ser.errors, status=400)
+            return Response(ser.data, status=status.HTTP_201_CREATED)
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET', 'PUT', 'DELETE'])
 def tag_detail(request, pk):
     """
     Retrieve, Update or Delete a Tag
@@ -163,7 +179,7 @@ def tag_detail(request, pk):
     try:
         tag = Tag.objects.get(pk=pk)
     except Tag.DoesNotExist:
-        return Response(status=404)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'GET':
         ser = TagSerializer(tag)
@@ -173,7 +189,7 @@ def tag_detail(request, pk):
         if ser.is_valid():
             ser.save()
             return Response(ser.data)
-        return Response(ser.errors, status=400)
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         tag.delete()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
