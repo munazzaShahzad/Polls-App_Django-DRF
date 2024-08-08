@@ -1,13 +1,14 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from .views import (ProfileView, PollListView, PollDetailView,  # tag_list, tag_detail,
-                    TagViewSet, PollViewSet, ChoiceViewSet, GroupViewSet)
+from .views import (ProfileView, PollListView, PollDetailView, tag_list, tag_detail,
+                    TagViewSet, PollViewSet, ChoiceViewSet, GroupViewSet, UserViewSet)
 
 router = routers.DefaultRouter()
 router.register(r'tags', TagViewSet)
 router.register(r'polls', PollViewSet)
 router.register(r'choices', ChoiceViewSet)
+router.register(r'users', UserViewSet)
 # router.register(r'groups', GroupViewSet)
 
 app_name = "polls"
