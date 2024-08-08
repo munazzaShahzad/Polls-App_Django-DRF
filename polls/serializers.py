@@ -2,7 +2,7 @@ from django.contrib.auth.models import Group
 from django.db import models
 from rest_framework import serializers
 
-from .models import Tag, Poll, Choice
+from .models import Tag, Poll, Choice, User
 
 
 # class TagSerializer(serializers.Serializer):
@@ -16,6 +16,12 @@ from .models import Tag, Poll, Choice
 #         instance.name = validated_data.get('name', instance.name)
 #         instance.save()
 #         return instance
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -38,29 +44,43 @@ class ChoiceSerializer(serializers.ModelSerializer):
 
 class PollSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True)
+    created_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Poll
-        fields = ['id', 'title', 'question', 'expiry_date', 'choices']
+        fields = ['id', 'title', 'question', 'category', 'tags', 'expiry_date', 'choices', 'created_by']
 
     def create(self, validated_data):
         choices_data = validated_data.pop('choices')
-        poll = Poll.objects.create(**validated_data)
-        for choice_data in choices_data:
-            Choice.objects.create(poll=poll, **choice_data)
-        return poll
+        tags_data = validated_data.pop('tags')
+        try:
+            poll = Poll.objects.create(**validated_data)
+            poll.tags.set(tags_data)
+            for choice_data in choices_data:
+                Choice.objects.create(poll=poll, **choice_data)
+            return poll
+        except serializers.ValidationError as e:
+            raise e
 
     def update(self, instance, validated_data):
-        choices_data = validated_data.pop('choices')
-        choices = instance.choices
+        choices_data = validated_data.pop('choices', None)
+        tags_data = validated_data.pop('tags', None)
 
         instance.title = validated_data.get('title', instance.title)
         instance.question = validated_data.get('question', instance.question)
         instance.expiry_date = validated_data.get('expiry_date', instance.expiry_date)
         instance.save()
 
-        # for (choice_data, choice) in (choices_data, choices):
-        #     choice.choice_text = choices_data.get('choice_text', choice.choice_text)
+        if tags_data is not None:
+            instance.tags.set(tags_data)
+
+        if choices_data is not None:
+            # Update choices
+            instance.choices.all().delete()
+            for choice_data in choices_data:
+                Choice.objects.create(poll=instance, **choice_data)
+
+        return instance
 
 
 # class ChoiceSerializer(serializers.Serializer):
