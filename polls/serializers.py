@@ -19,9 +19,15 @@ from .models import Tag, Poll, Choice, User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = User
-        fields = "__all__"
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'role']
+
+    def get_role(self, obj):
+        if obj.user_type == 1:
+            return "Regular"
+        return "Admin"
 
 
 class TagSerializer(serializers.ModelSerializer):
