@@ -15,7 +15,7 @@ from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHisto
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows tags to be viewed or edited.
+    API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
