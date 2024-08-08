@@ -15,7 +15,7 @@ app_name = "polls"
 
 urlpatterns = [
     path('', ProfileView.as_view(), name='profile'),
-    path('test/', include(router.urls)),
+    path('api/', include(router.urls)),
     path('polls_list/', PollListView.as_view(), name='poll_list'),
     path('<int:pk>/', PollDetailView.as_view(), name='poll_detail'),
 ]
