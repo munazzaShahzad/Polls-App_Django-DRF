@@ -151,45 +151,44 @@ class ProfileView(LoginRequiredMixin, View):
 
         return render(request, 'polls/profile.html', context)
 
-
-# tag view functions (with serializer)
-
-@api_view(['GET', 'POST'])
-def tag_list(request):
-    """
-    Display list of tags, or create a new tag
-    """
-    if request.method == 'GET':
-        tags = Tag.objects.all().order_by('name')
-        ser = TagSerializer(tags, many=True)
-        return Response(ser.data)
-    elif request.method == 'POST':
-        ser = TagSerializer(data=request.data)
-        if ser.is_valid():
-            ser.save()
-            return Response(ser.data, status=status.HTTP_201_CREATED)
-        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def tag_detail(request, pk):
-    """
-    Retrieve, Update or Delete a Tag
-    """
-    try:
-        tag = Tag.objects.get(pk=pk)
-    except Tag.DoesNotExist:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    if request.method == 'GET':
-        ser = TagSerializer(tag)
-        return Response(ser.data)
-    elif request.method == 'PUT':
-        ser = TagSerializer(tag, data=request.data)
-        if ser.is_valid():
-            ser.save()
-            return Response(ser.data)
-        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-    elif request.method == 'DELETE':
-        tag.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+# # tag view functions (with serializer)
+#
+# @api_view(['GET', 'POST'])
+# def tag_list(request):
+#     """
+#     Display list of tags, or create a new tag
+#     """
+#     if request.method == 'GET':
+#         tags = Tag.objects.all().order_by('name')
+#         ser = TagSerializer(tags, many=True)
+#         return Response(ser.data)
+#     elif request.method == 'POST':
+#         ser = TagSerializer(data=request.data)
+#         if ser.is_valid():
+#             ser.save()
+#             return Response(ser.data, status=status.HTTP_201_CREATED)
+#         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#
+# @api_view(['GET', 'PUT', 'DELETE'])
+# def tag_detail(request, pk):
+#     """
+#     Retrieve, Update or Delete a Tag
+#     """
+#     try:
+#         tag = Tag.objects.get(pk=pk)
+#     except Tag.DoesNotExist:
+#         return Response(status=status.HTTP_400_BAD_REQUEST)
+#
+#     if request.method == 'GET':
+#         ser = TagSerializer(tag)
+#         return Response(ser.data)
+#     elif request.method == 'PUT':
+#         ser = TagSerializer(tag, data=request.data)
+#         if ser.is_valid():
+#             ser.save()
+#             return Response(ser.data)
+#         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+#     elif request.method == 'DELETE':
+#         tag.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
