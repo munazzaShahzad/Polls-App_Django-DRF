@@ -14,16 +14,13 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
 # from rest_framework.decorators import api_view
 
-from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
-                          UserSerializer, UserLoginSerializer, UserRegisterSerializer)
+from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer, CategorySerializer,
+                          UserSerializer, UserLoginSerializer, UserRegisterSerializer, UserProfileSerializer)
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
 
 
 class UserLoginAPIView(APIView):
     permission_classes = []
-
-    def get(self, request, *args, **kwargs):
-        return render(request, 'registration/login.html')
 
     def post(self, request, *args, **kwargs):
         serializer = UserLoginSerializer(data=request.data)
@@ -88,8 +85,8 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -206,10 +203,14 @@ class ProfileView(APIView):
         except UserTagHistory.DoesNotExist:
             top_tags = []
 
+        profile_serializer = UserProfileSerializer(profile)
+        polls_serializer = PollSerializer(last_voted_polls, many=True)
+        tags_serializer = TagSerializer(top_tags, many=True)
+
         context = {
-            'profile': profile,
-            'last_voted_polls': last_voted_polls,
-            'top_tags': top_tags
+            'profile': profile_serializer.data,
+            'last_voted_polls': polls_serializer.data,
+            'top_tags': tags_serializer.data
         }
 
         # Admin users additional options
@@ -217,14 +218,17 @@ class ProfileView(APIView):
             created_polls = Poll.objects.filter(created_by=user)
             categories = Category.objects.all()
             tags = Tag.objects.all()
+            created_polls_ser = PollSerializer(created_polls, many=True)
+            tags_serializer = TagSerializer(tags, many=True)
+            category_ser = CategorySerializer(categories, many=True)
             context.update({
-                'created_polls': created_polls,
-                'categories': categories,
-                'tags': tags,
+                'created_polls': created_polls_ser.data,
+                'categories': category_ser.data,
+                'tags': tags_serializer.data
             })
 
-        # return render(request, 'polls/profile.html', context)
-        return Response(context)
+        return render(request, 'polls/profile.html', context)
+        # return Response(context)
 
 # # tag view functions (with serializer)
 #
