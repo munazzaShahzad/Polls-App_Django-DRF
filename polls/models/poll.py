@@ -45,7 +45,7 @@ class Choice(models.Model):
     A choice in a poll.
     """
     id = models.AutoField(primary_key=True)
-    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, related_name='choices', on_delete=models.CASCADE)
     choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
 
     def __str__(self):

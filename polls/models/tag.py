@@ -7,7 +7,7 @@ class Tag(models.Model):
     Tags to affiliate to a poll.
     """
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, validators=[MinLengthValidator(3)])
+    name = models.CharField(unique=True, max_length=100, validators=[MinLengthValidator(3)])
 
     def __str__(self):
         return str(self.id) + ': ' + str(self.name)
