@@ -4,7 +4,13 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 
-from .models import Tag, Poll, Choice, User
+from .models import Tag, Poll, Choice, User, UserProfile, Category
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['name', 'email', 'role']
 
 
 class UserLoginSerializer(serializers.ModelSerializer):
@@ -88,6 +94,12 @@ class UserSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        fields = ['id', 'name']
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
         fields = ['id', 'name']
 
 
