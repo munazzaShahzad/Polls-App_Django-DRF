@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.admindocs',
     'rest_framework',
     'polls',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -130,9 +131,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'polls.User'
 
-LOGIN_REDIRECT_URL = '/polls/'
+LOGIN_URL = '/polls/login/'
+LOGIN_REDIRECT_URL = '/polls/api/'
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
 }
