@@ -25,9 +25,9 @@ SECRET_KEY = 'django-insecure-kj231@$3=y2(**-q2ue&7vcq%)-6_apsb$m6bt8x4#@x9n3l8^
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',    # localhost
+    '127.0.0.1',  # localhost
     '4a8f-116-58-44-74.ngrok-free.app',
-    ]
+]
 
 # Application definition
 
@@ -89,7 +89,6 @@ DATABASES = {
     }
 }
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -135,10 +134,13 @@ LOGIN_URL = '/polls/login/'
 LOGIN_REDIRECT_URL = '/polls/api/'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
-        ],
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated'
+    ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
