@@ -31,7 +31,14 @@ class UserLoginAPIView(APIView):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                token, created = Token.objects.get_or_create(user=user)
+                try:
+                    token = Token.objects.get(user=user)
+                    token.delete()
+                except Token.DoesNotExist:
+                    pass
+
+                token = Token.objects.create(user=user)
+
                 response = {
                     'success': True,
                     'username': user.username,
