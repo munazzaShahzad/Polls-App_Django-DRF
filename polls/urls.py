@@ -18,6 +18,7 @@ app_name = "polls"
 
 urlpatterns = [
     path('', ProfileView.as_view(), name='profile'),
+    path('users/', UserViewSet.as_view({'get': 'list'})),
     path('api/', include(router.urls)),
     path("login/", UserLoginAPIView.as_view(), name="user_login"),
     path("register/", UserRegisterAPIView().as_view(), name="user_register"),
