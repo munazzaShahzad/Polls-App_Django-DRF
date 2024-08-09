@@ -20,6 +20,8 @@ from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHisto
 
 
 class UserLoginAPIView(APIView):
+    permission_classes = []
+
     def get(self, request, *args, **kwargs):
         return render(request, 'registration/login.html')
 
@@ -87,6 +89,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -182,6 +185,7 @@ class PollDetailView(View):
 
 # class ProfileView(LoginRequiredMixin, View):
 class ProfileView(APIView):
+    authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
