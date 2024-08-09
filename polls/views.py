@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -6,11 +7,77 @@ from django.forms import ModelForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
 from rest_framework import permissions, viewsets, status
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
+from rest_framework.authtoken.models import Token
+# from rest_framework.decorators import api_view
 
-from .serializers import GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer, UserSerializer
+from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
+                          UserSerializer, UserLoginSerializer, UserRegisterSerializer)
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
+
+
+class UserLoginAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        return render(request, 'registration/login.html')
+
+    def post(self, request, *args, **kwargs):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+
+            user = authenticate(request, username=username, password=password)
+
+            if user is not None:
+                token, created = Token.objects.get_or_create(user=user)
+                response = {
+                    'success': True,
+                    'username': user.username,
+                    'email': user.email,
+                    'token': token.key
+                }
+                return Response(response, status=status.HTTP_200_OK)
+            else:
+                response = {
+                    "detail": "Invalid credentials, please try again."
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRegisterAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            response = {
+                'success': True,
+                'user': serializer.data,
+                'token': Token.objects.get(user=User.objects.get(username=serializer.data['username'])).key
+            }
+            return Response(response, status=status.HTTP_200_OK)
+        raise ValidationError(serializer.errors, code=status.HTTP_406_NOT_ACCEPTABLE)
+
+
+class UserLogoutAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        return render(request, 'registration/logout.html')
+
+    def post(self, request, *args):
+        try:
+            token = Token.objects.get(user=request.user)
+            token.delete()
+            return Response({"success": True, "detail": "Logged out!"}, status=status.HTTP_200_OK)
+        except Token.DoesNotExist:
+            return Response({"success": False, "detail": "Token not found!"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -113,10 +180,13 @@ class PollDetailView(View):
         return redirect('polls:poll_list')
 
 
-class ProfileView(LoginRequiredMixin, View):
+# class ProfileView(LoginRequiredMixin, View):
+class ProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         user = request.user
-        profile = UserProfile.objects.get(user=user)
+        profile = get_object_or_404(UserProfile, user=user)
 
         # Recent Polls user has voted in
         user_poll_history = user.userpollhistory_set.all().order_by('-voting_time')[:5]
@@ -149,7 +219,8 @@ class ProfileView(LoginRequiredMixin, View):
                 'tags': tags,
             })
 
-        return render(request, 'polls/profile.html', context)
+        # return render(request, 'polls/profile.html', context)
+        return Response(context)
 
 # # tag view functions (with serializer)
 #

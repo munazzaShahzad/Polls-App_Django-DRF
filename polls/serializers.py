@@ -1,28 +1,83 @@
 from django.contrib.auth.models import Group
-from django.db import models
+from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ValidationError
 
 from .models import Tag, Poll, Choice, User
 
 
-# class TagSerializer(serializers.Serializer):
-#     id = serializers.IntegerField(read_only=True)
-#     name = serializers.CharField(max_length=100)
-#
-#     def create(self, validated_data):
-#         return Tag.objects.create(**validated_data)
-#
-#     def update(self, instance, validated_data):
-#         instance.name = validated_data.get('name', instance.name)
-#         instance.save()
-#         return instance
+class UserLoginSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(read_only=True)
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "password"]
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(read_only=True)
+    username = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "first_name",
+                  "last_name", "email", "password", "confirm_password"]
+
+    def validate_username(self, username):
+        if User.objects.filter(username=username).exists():
+            detail = {
+                "detail": "Username already exists!"
+            }
+            raise ValidationError(detail=detail)
+        return username
+
+    def validate(self, instance):
+        if instance['password'] != instance['confirm_password']:
+            raise ValidationError({"message": "Password mismatch!"})
+
+        if User.objects.filter(email=instance['email']).exists():
+            raise ValidationError({"message": "Account for this email already exists!"})
+
+        return instance
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        validated_data.pop('confirm_password')
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        Token.objects.create(user=user)
+        return user
 
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField(read_only=True)
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        help_text='Leave empty if no change needed',
+        style={'input_type': 'password'}
+    )
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'role']
+        fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'user_type', 'role']
+
+    def create(self, validated_data):
+        validated_data['password'] = make_password(validated_data.get('password'))
+        return super(UserSerializer, self).create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data['password'] = make_password(validated_data.get('password'))
+        return super(UserSerializer, self).update(instance, validated_data)
 
     def get_role(self, obj):
         if obj.user_type == 1:
@@ -93,3 +148,16 @@ class PollSerializer(serializers.ModelSerializer):
 #     id = serializers.IntegerField(read_only=True)
 #     poll = PollSerializer()
 #     choice_text = serializers.CharField(max_length=200)
+
+
+# class TagSerializer(serializers.Serializer):
+#     id = serializers.IntegerField(read_only=True)
+#     name = serializers.CharField(max_length=100)
+#
+#     def create(self, validated_data):
+#         return Tag.objects.create(**validated_data)
+#
+#     def update(self, instance, validated_data):
+#         instance.name = validated_data.get('name', instance.name)
+#         instance.save()
+#         return instance
