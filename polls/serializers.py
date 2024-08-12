@@ -7,6 +7,12 @@ from rest_framework.exceptions import ValidationError
 from .models import Tag, Poll, Choice, User, UserProfile, Category
 
 
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['name']
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
@@ -72,18 +78,40 @@ class UserSerializer(serializers.ModelSerializer):
         help_text='Leave empty if no change needed',
         style={'input_type': 'password'}
     )
+    groups = serializers.PrimaryKeyRelatedField(many=True, queryset=Group.objects.all())
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'user_type', 'role']
+        fields = ['id', 'username', 'email', 'password', 'first_name', 'groups',
+                  'last_name', 'user_type', 'role']
 
     def create(self, validated_data):
-        validated_data['password'] = make_password(validated_data.get('password'))
-        return super(UserSerializer, self).create(validated_data)
+        groups = validated_data.pop('groups', None)
+        password = validated_data.pop('password', None)
+        user = super(UserSerializer, self).create(validated_data)
+        if password:
+            user.password = make_password(password)
+            user.save()
+        if groups:
+            user.groups.set(groups)
+            user.save()
+        return user
 
     def update(self, instance, validated_data):
-        validated_data['password'] = make_password(validated_data.get('password'))
-        return super(UserSerializer, self).update(instance, validated_data)
+        password = validated_data.pop('password', instance.password)
+        groups = validated_data.pop('groups', instance.groups)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.password = make_password(password)
+
+        if groups is not None:
+            instance.groups.set(groups)
+
+        instance.save()
+        return instance
 
     def get_role(self, obj):
         if obj.user_type == 1:
@@ -103,12 +131,6 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class GroupSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Group
-        fields = ['url', 'name']
-
-
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
@@ -118,6 +140,8 @@ class ChoiceSerializer(serializers.ModelSerializer):
 class PollSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True)
     created_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    category = CategorySerializer()
+    tags = TagSerializer(many=True)
 
     class Meta:
         model = Poll
@@ -154,22 +178,3 @@ class PollSerializer(serializers.ModelSerializer):
                 Choice.objects.create(poll=instance, **choice_data)
 
         return instance
-
-
-# class ChoiceSerializer(serializers.Serializer):
-#     id = serializers.IntegerField(read_only=True)
-#     poll = PollSerializer()
-#     choice_text = serializers.CharField(max_length=200)
-
-
-# class TagSerializer(serializers.Serializer):
-#     id = serializers.IntegerField(read_only=True)
-#     name = serializers.CharField(max_length=100)
-#
-#     def create(self, validated_data):
-#         return Tag.objects.create(**validated_data)
-#
-#     def update(self, instance, validated_data):
-#         instance.name = validated_data.get('name', instance.name)
-#         instance.save()
-#         return instance
