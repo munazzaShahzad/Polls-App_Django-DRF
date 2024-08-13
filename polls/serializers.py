@@ -148,6 +148,14 @@ class PollSerializer(serializers.ModelSerializer):
         model = Poll
         fields = ['id', 'title', 'question', 'category', 'tags', 'expiry_date', 'choices', 'created_by']
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Customize the fields for vote API
+        if self.context.get('vote', False):
+            fields = ['id', 'title', 'question', 'choices']
+            representation = {field: representation[field] for field in fields}
+        return representation
+
     def create(self, validated_data):
         choices_data = validated_data.pop('choices')
         tags_data = validated_data.pop('tags')
