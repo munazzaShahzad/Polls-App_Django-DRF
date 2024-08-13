@@ -12,7 +12,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
+from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserSerializer, UserLoginSerializer,
                           UserRegisterSerializer, UserProfileSerializer)
@@ -318,6 +318,65 @@ class ChoiceAPIView(APIView):
         choice = get_object_or_404(Choice, pk=pk)
         choice.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class VoteAPIView(APIView):
+
+    def get(self, request, poll_id, *args, **kwargs):
+        try:
+            poll = Poll.objects.get(pk=poll_id)
+            serializer = PollSerializer(poll, context={'vote': True})
+            response = {
+                "poll": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
+        except Poll.DoesNotExist:
+            response = {
+                "detail": "Poll not found!"
+            }
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, poll_id, *args, **kwargs):
+        if request.user.userpollhistory_set.filter(poll_id=poll_id).exists():
+            response = {
+                "detail": "You have already voted!"
+            }
+            return Response(response, status=status.HTTP_200_OK)
+
+        choice_id = request.data.get('choice_id')
+        if choice_id is None:
+            response = {
+                "detail": "Choice id missing in request."
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            poll = Poll.objects.get(pk=poll_id)
+        except Poll.DoesNotExist:
+            response = {
+                "detail": "Poll not found!"
+            }
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            choice = Choice.objects.get(pk=choice_id, poll=poll)
+        except Choice.DoesNotExist:
+            response = {
+                "detail": "Invalid choice!"
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        choice.votes += 1
+        choice.save()
+
+        user = request.user
+        UserPollHistory.objects.create(user=user, poll=poll, choice=choice)
+
+        serializer = PollSerializer(poll)
+        response = {
+            "poll": serializer.data
+        }
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class TagAPIView(APIView):
