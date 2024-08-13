@@ -1,12 +1,13 @@
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import Group
-from rest_framework import permissions, viewsets, status
+from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
-from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
@@ -47,6 +48,7 @@ class UserLoginAPIView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = UserLoginSerializer(data=request.data)
+
         if serializer.is_valid():
             username = serializer.validated_data['username']
             password = serializer.validated_data['password']
@@ -54,16 +56,18 @@ class UserLoginAPIView(APIView):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                try:
-                    token = Token.objects.get(user=user)
-                    token.delete()
-                except Token.DoesNotExist:
-                    pass
+                # Blacklist any existing refresh tokens for the user
+                tokens = OutstandingToken.objects.filter(user=user)
+                if tokens.exists():
+                    for token in tokens:
+                        _, _ = BlacklistedToken.objects.get_or_create(token=token)
 
-                token = Token.objects.create(user=user)
+                # Generate new refresh and access tokens
+                refresh = RefreshToken.for_user(user)
 
                 response = {
-                    'token': token.key
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
                 }
                 return Response(response, status=status.HTTP_200_OK)
             else:
@@ -80,28 +84,44 @@ class UserRegisterAPIView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = UserRegisterSerializer(data=request.data)
+
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+
             response = {
-                'token': Token.objects.get(user=User.objects.get(username=serializer.data['username'])).key
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
             }
             return Response(response, status=status.HTTP_200_OK)
-        raise ValidationError(serializer.errors, code=status.HTTP_406_NOT_ACCEPTABLE)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLogoutAPIView(APIView):
     def post(self, request, *args):
         try:
-            token = Token.objects.get(user=request.user)
-            token.delete()
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
 
             response = {
                 "detail": "Logged out!"
             }
             return Response(response, status=status.HTTP_200_OK)
-        except Token.DoesNotExist:
+        except KeyError:
             response = {
-                "detail": "Logout failed!"
+                "detail": "Refresh token not provided."
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        except TokenError as e:
+            response = {
+                "detail": f"Token error: {str(e)}"
+            }
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            response = {
+                "detail": f"Logout failed!: {str(e)}"
             }
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
