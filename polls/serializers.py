@@ -134,7 +134,8 @@ class CategorySerializer(serializers.ModelSerializer):
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ['id', 'choice_text']
+        fields = ['id', 'choice_text', 'votes']
+        read_only_fields = ['votes']
 
 
 class PollSerializer(serializers.ModelSerializer):
