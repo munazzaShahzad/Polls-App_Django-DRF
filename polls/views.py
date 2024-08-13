@@ -1,4 +1,7 @@
+import datetime
+
 from django.contrib.auth import authenticate
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import Group
 from rest_framework import permissions, status
@@ -218,11 +221,29 @@ class PollAPIView(APIView):
         if pk:
             poll = get_object_or_404(Poll, pk=pk)
             serializer = PollSerializer(poll)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "poll": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         else:
-            polls = Poll.objects.all()
-            serializer = PollSerializer(polls, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
+            open_poll_ser = PollSerializer(open_polls, many=True)
+
+            user = request.user
+            user_tag_history = user.usertaghistory.tag_history
+            sorted_tags = sorted(user_tag_history.items(), key=lambda x: x[1], reverse=True)[:5]
+            top_tags = [tag_id for tag_id, count in sorted_tags]
+
+            recommended_polls = (Poll.objects.
+                                 filter(Q(expiry_date__gt=datetime.datetime.now()) and Q(tags__in=top_tags)).
+                                 order_by('expiry_date'))[:5]
+            rec_poll_ser = PollSerializer(recommended_polls, many=True)
+
+            response = {
+                "recommendations": rec_poll_ser.data,
+                "open_polls": open_poll_ser.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = PollSerializer(data=request.data)
