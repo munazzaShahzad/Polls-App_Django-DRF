@@ -129,10 +129,15 @@ class UserLogoutAPIView(APIView):
 class UserAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperuser]
 
-    def get(self, request, *args, **kwargs):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, pk=None, *args, **kwargs):
+        if pk:
+            user = get_object_or_404(User, pk=pk)
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            users = User.objects.all()
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
@@ -142,6 +147,14 @@ class UserAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
+        user = get_object_or_404(User, pk=pk)
+        serializer = UserSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, *args, **kwargs):
         user = get_object_or_404(User, pk=pk)
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -159,10 +172,15 @@ class GroupAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsSuperuserOrReadOnly]
 
-    def get(self, request, *args, **kwargs):
-        groups = Group.objects.all().order_by('name')
-        serializer = GroupSerializer(groups, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, pk=None, *args, **kwargs):
+        if pk:
+            group = get_object_or_404(Group, pk=pk)
+            serializer = GroupSerializer(group)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            groups = Group.objects.all().order_by('name')
+            serializer = GroupSerializer(groups, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = GroupSerializer(data=request.data)
@@ -172,6 +190,14 @@ class GroupAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
+        group = get_object_or_404(Group, pk=pk)
+        serializer = GroupSerializer(group, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, *args, **kwargs):
         group = get_object_or_404(Group, pk=pk)
         serializer = GroupSerializer(group, data=request.data, partial=True)
         if serializer.is_valid():
