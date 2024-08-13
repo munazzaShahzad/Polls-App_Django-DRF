@@ -1,4 +1,6 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
+
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     PollAPIView, ChoiceAPIView, TagAPIView, CategoryAPIView,
                     ProfileAPIView, UserAPIView, GroupAPIView)
@@ -13,6 +15,7 @@ urlpatterns = [
     path('auth/login/', UserLoginAPIView.as_view(), name='user-login'),
     path('auth/register/', UserRegisterAPIView.as_view(), name='user-register'),
     path('auth/logout/', UserLogoutAPIView.as_view(), name='user-logout'),
+    path('auth/refresh/', TokenRefreshView.as_view(), name='user-refresh-access'),
 
     # Polls
     path('polls/', PollAPIView.as_view(), name='poll-list-create'),
