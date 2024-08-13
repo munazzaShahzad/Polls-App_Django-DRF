@@ -8,6 +8,9 @@ from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
 app_name = "polls"
 
 urlpatterns = [
+    # Profile
+    path('', ProfileAPIView.as_view(), name='user-profile'),
+
     # Authentication
     path('auth/login/', UserLoginAPIView.as_view(), name='user-login'),
     path('auth/register/', UserRegisterAPIView.as_view(), name='user-register'),
@@ -29,9 +32,6 @@ urlpatterns = [
     # Categories
     path('categories/', CategoryAPIView.as_view(), name='category-list-create'),
     path('categories/<int:pk>/', CategoryAPIView.as_view(), name='category-detail'),
-
-    # Profile
-    path('profile/', ProfileAPIView.as_view(), name='user-profile'),
 
     # Users
     path('users/', UserAPIView.as_view(), name='user-list'),
