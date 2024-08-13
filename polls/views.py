@@ -472,8 +472,7 @@ class ProfileAPIView(APIView):
 
         # Recent Polls user has voted in
         user_poll_history = user.userpollhistory_set.all().order_by('-voting_time')[:5]
-        voted_poll_ids = [history.poll.id for history in user_poll_history]
-        last_voted_polls = Poll.objects.filter(id__in=voted_poll_ids)
+        last_voted_polls = [history.poll for history in user_poll_history]
 
         # Top 5 tags
         try:
@@ -488,24 +487,18 @@ class ProfileAPIView(APIView):
         polls_serializer = PollSerializer(last_voted_polls, many=True)
         tags_serializer = TagSerializer(top_tags, many=True)
 
-        context = {
+        response = {
             'profile': profile_serializer.data,
             'last_voted_polls': polls_serializer.data,
             'top_tags': tags_serializer.data
         }
 
-        # Admin users additional options
+        # Admin users additional data
         if profile.role == "Admin":
             created_polls = Poll.objects.filter(created_by=user)
-            categories = Category.objects.all()
-            tags = Tag.objects.all()
             created_polls_ser = PollSerializer(created_polls, many=True)
-            tags_serializer = TagSerializer(tags, many=True)
-            category_ser = CategorySerializer(categories, many=True)
-            context.update({
+            response.update({
                 'created_polls': created_polls_ser.data,
-                'categories': category_ser.data,
-                'tags': tags_serializer.data
             })
 
-        return Response(context)
+        return Response(response, status=status.HTTP_200_OK)
