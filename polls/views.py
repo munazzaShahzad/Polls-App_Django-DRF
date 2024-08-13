@@ -229,13 +229,17 @@ class PollAPIView(APIView):
             open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
             open_poll_ser = PollSerializer(open_polls, many=True)
 
-            user = request.user
-            user_tag_history = user.usertaghistory.tag_history
-            sorted_tags = sorted(user_tag_history.items(), key=lambda x: x[1], reverse=True)[:5]
-            top_tags = [tag_id for tag_id, count in sorted_tags]
+            try:
+                user = request.user
+                user_tag_history = user.usertaghistory.tag_history
+                sorted_tags = sorted(user_tag_history.items(), key=lambda x: x[1], reverse=True)[:5]
+                top_tags = [tag_id for tag_id, count in sorted_tags]
+
+            except UserTagHistory.DoesNotExist:
+                top_tags = []
 
             recommended_polls = (Poll.objects.
-                                 filter(Q(expiry_date__gt=datetime.datetime.now()) and Q(tags__in=top_tags)).
+                                 filter(Q(expiry_date__gt=datetime.datetime.now()) & Q(tags__in=top_tags)).
                                  order_by('expiry_date'))[:5]
             rec_poll_ser = PollSerializer(recommended_polls, many=True)
 
