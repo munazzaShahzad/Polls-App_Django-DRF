@@ -1,7 +1,7 @@
 import datetime
 
 from django.contrib.auth import authenticate
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import Group
 from django.utils import timezone
@@ -137,17 +137,26 @@ class UserAPIView(APIView):
         if pk:
             user = get_object_or_404(User, pk=pk)
             serializer = UserSerializer(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "user": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         else:
             users = User.objects.all()
             serializer = UserSerializer(users, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "users": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "user": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -155,7 +164,10 @@ class UserAPIView(APIView):
         serializer = UserSerializer(user, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "user": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -163,7 +175,10 @@ class UserAPIView(APIView):
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "user": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
@@ -180,17 +195,26 @@ class GroupAPIView(APIView):
         if pk:
             group = get_object_or_404(Group, pk=pk)
             serializer = GroupSerializer(group)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "group": serializer.data
+            }
+            return Response(group, status=status.HTTP_200_OK)
         else:
             groups = Group.objects.all().order_by('name')
             serializer = GroupSerializer(groups, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "groups": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = GroupSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "group": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -198,7 +222,10 @@ class GroupAPIView(APIView):
         serializer = GroupSerializer(group, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "group": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -206,7 +233,10 @@ class GroupAPIView(APIView):
         serializer = GroupSerializer(group, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "group": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
@@ -255,7 +285,10 @@ class PollAPIView(APIView):
         user = request.user
         if serializer.is_valid():
             serializer.save(created_by=user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "poll": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -270,7 +303,10 @@ class PollAPIView(APIView):
         serializer = PollSerializer(poll, data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "poll": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -285,7 +321,10 @@ class PollAPIView(APIView):
         serializer = PollSerializer(poll, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "poll": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
@@ -301,17 +340,26 @@ class ChoiceAPIView(APIView):
         if pk:
             choice = get_object_or_404(Choice, pk=pk)
             serializer = ChoiceSerializer(choice)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "choice": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         else:
             choices = Choice.objects.all()
             serializer = ChoiceSerializer(choices, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "choices": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = ChoiceSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "choice": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -319,7 +367,10 @@ class ChoiceAPIView(APIView):
         serializer = ChoiceSerializer(choice, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "choice": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -327,7 +378,10 @@ class ChoiceAPIView(APIView):
         serializer = ChoiceSerializer(choice, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "choice": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
@@ -444,17 +498,26 @@ class TagAPIView(APIView):
         if pk:
             tag = get_object_or_404(Tag, pk=pk)
             serializer = TagSerializer(tag)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "tag": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         else:
             tags = Tag.objects.all()
             serializer = TagSerializer(tags, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "tags": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = TagSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "tag": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -462,7 +525,10 @@ class TagAPIView(APIView):
         serializer = TagSerializer(tag, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "tag": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -470,7 +536,10 @@ class TagAPIView(APIView):
         serializer = TagSerializer(tag, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "tag": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
@@ -486,17 +555,26 @@ class CategoryAPIView(APIView):
         if pk:
             category = get_object_or_404(Category, pk=pk)
             serializer = CategorySerializer(category)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "category": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         else:
             categories = Category.objects.all()
             serializer = CategorySerializer(categories, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "categories": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            response = {
+                "category": serializer.data
+            }
+            return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk, *args, **kwargs):
@@ -504,7 +582,10 @@ class CategoryAPIView(APIView):
         serializer = CategorySerializer(category, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "category": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, *args, **kwargs):
@@ -512,7 +593,10 @@ class CategoryAPIView(APIView):
         serializer = CategorySerializer(category, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = {
+                "category": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, *args, **kwargs):
