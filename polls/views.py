@@ -1,9 +1,10 @@
 import datetime
 
 from django.contrib.auth import authenticate
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import Group
+from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -329,6 +330,8 @@ class VoteAPIView(APIView):
             response = {
                 "poll": serializer.data
             }
+            if poll.expiry_date < timezone.now():
+                response.update({"status": "Closed"})
             return Response(response, status=status.HTTP_200_OK)
         except Poll.DoesNotExist:
             response = {
@@ -337,6 +340,19 @@ class VoteAPIView(APIView):
             return Response(response, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, poll_id, *args, **kwargs):
+        try:
+            poll = Poll.objects.get(pk=poll_id)
+            if poll.expiry_date < timezone.now():
+                response = {
+                    "detail": "Poll is closed!"
+                }
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+        except Poll.DoesNotExist:
+            response = {
+                "detail": "Poll not found!"
+            }
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+
         if request.user.userpollhistory_set.filter(poll_id=poll_id).exists():
             response = {
                 "detail": "You have already voted!"
@@ -349,14 +365,6 @@ class VoteAPIView(APIView):
                 "detail": "Choice id missing in request."
             }
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            poll = Poll.objects.get(pk=poll_id)
-        except Poll.DoesNotExist:
-            response = {
-                "detail": "Poll not found!"
-            }
-            return Response(response, status=status.HTTP_404_NOT_FOUND)
 
         try:
             choice = Choice.objects.get(pk=choice_id, poll=poll)
@@ -372,10 +380,37 @@ class VoteAPIView(APIView):
         user = request.user
         UserPollHistory.objects.create(user=user, poll=poll, choice=choice)
 
-        serializer = PollSerializer(poll)
+        serializer = PollSerializer(poll, context={'vote': True})
         response = {
             "poll": serializer.data
         }
+        return Response(response, status=status.HTTP_200_OK)
+
+
+class PollResultsAPIView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        # user = request.user
+        polls = Poll.objects.filter(expiry_date__lte=datetime.datetime.now())
+
+        response = []
+        for poll in polls:
+            choices = poll.choices.all()
+            top_choice = choices.order_by('-votes')[0]
+
+            poll_data = {
+                "title": poll.title,
+                "questions": poll.question,
+                "choices": [
+                    {"choice text": choice.choice_text, "votes": choice.votes}
+                    for choice in choices
+                ],
+                "top choice": top_choice.choice_text if top_choice else None
+            }
+
+            response.append(poll_data)
+
         return Response(response, status=status.HTTP_200_OK)
 
 
