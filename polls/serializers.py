@@ -159,6 +159,10 @@ class PollSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         choices_data = validated_data.pop('choices')
         tags_data = validated_data.pop('tags')
+
+        if not choices_data or len(choices_data) < 1:
+            raise serializers.ValidationError("At least one choice is required.")
+
         try:
             poll = Poll.objects.create(**validated_data)
             poll.tags.set(tags_data)
@@ -181,6 +185,8 @@ class PollSerializer(serializers.ModelSerializer):
             instance.tags.set(tags_data)
 
         if choices_data is not None:
+            if len(choices_data) < 1:
+                raise serializers.ValidationError("At least one choice is required.")
             # Update choices
             instance.choices.all().delete()
             for choice_data in choices_data:
