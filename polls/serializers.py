@@ -151,7 +151,7 @@ class PollSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         # Customize the fields for vote API
-        if self.context.get('vote', False):
+        if self.context.get('short', False):
             fields = ['id', 'title', 'question', 'choices']
             representation = {field: representation[field] for field in fields}
         return representation

@@ -228,7 +228,7 @@ class PollAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
-            open_poll_ser = PollSerializer(open_polls, many=True)
+            open_poll_ser = PollSerializer(open_polls, context={'short': True}, many=True)
 
             try:
                 user = request.user
@@ -242,7 +242,7 @@ class PollAPIView(APIView):
             recommended_polls = (Poll.objects.
                                  filter(Q(expiry_date__gt=datetime.datetime.now()) & Q(tags__in=top_tags)).
                                  order_by('expiry_date'))[:5]
-            rec_poll_ser = PollSerializer(recommended_polls, many=True)
+            rec_poll_ser = PollSerializer(recommended_polls, context={'short': True}, many=True)
 
             response = {
                 "recommendations": rec_poll_ser.data,
@@ -326,7 +326,7 @@ class VoteAPIView(APIView):
     def get(self, request, poll_id, *args, **kwargs):
         try:
             poll = Poll.objects.get(pk=poll_id)
-            serializer = PollSerializer(poll, context={'vote': True})
+            serializer = PollSerializer(poll, context={'short': True})
             response = {
                 "poll": serializer.data
             }
@@ -380,7 +380,7 @@ class VoteAPIView(APIView):
         user = request.user
         UserPollHistory.objects.create(user=user, poll=poll, choice=choice)
 
-        serializer = PollSerializer(poll, context={'vote': True})
+        serializer = PollSerializer(poll, context={'short': True})
         response = {
             "poll": serializer.data
         }
@@ -527,7 +527,7 @@ class ProfileAPIView(APIView):
             top_tags = []
 
         profile_serializer = UserProfileSerializer(profile)
-        polls_serializer = PollSerializer(last_voted_polls, many=True)
+        polls_serializer = PollSerializer(last_voted_polls, context={'short': True}, many=True)
         tags_serializer = TagSerializer(top_tags, many=True)
 
         response = {
@@ -539,7 +539,7 @@ class ProfileAPIView(APIView):
         # Admin users additional data
         if profile.role == "Admin":
             created_polls = Poll.objects.filter(created_by=user)
-            created_polls_ser = PollSerializer(created_polls, many=True)
+            created_polls_ser = PollSerializer(created_polls, context={'short': True}, many=True)
             response.update({
                 'created_polls': created_polls_ser.data,
             })
