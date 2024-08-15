@@ -390,26 +390,34 @@ class VoteAPIView(APIView):
 class PollResultsAPIView(APIView):
     permission_classes = []
 
+    def get_poll_data(self, poll):
+        choices = poll.choices.all()
+        top_choice = choices.order_by('-votes')[0]
+
+        poll_data = {
+            "title": poll.title,
+            "questions": poll.question,
+            "choices": [
+                {"choice text": choice.choice_text, "votes": choice.votes}
+                for choice in choices
+            ],
+            "top choice": top_choice.choice_text if top_choice else None
+        }
+
+        return poll_data
+
     def get(self, request):
-        # user = request.user
-        polls = Poll.objects.filter(expiry_date__lte=datetime.datetime.now())
+        user = request.user
+        polls = Poll.objects.filter(expiry_date__lte=datetime.datetime.now()).order_by('-expiry_date')
+        user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
+        user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        response = []
+        response = [self.get_poll_data(poll) for poll in user_polls]
+
         for poll in polls:
-            choices = poll.choices.all()
-            top_choice = choices.order_by('-votes')[0]
-
-            poll_data = {
-                "title": poll.title,
-                "questions": poll.question,
-                "choices": [
-                    {"choice text": choice.choice_text, "votes": choice.votes}
-                    for choice in choices
-                ],
-                "top choice": top_choice.choice_text if top_choice else None
-            }
-
-            response.append(poll_data)
+            if poll in user_polls:
+                continue
+            response.append(self.get_poll_data(poll))
 
         return Response(response, status=status.HTTP_200_OK)
 
