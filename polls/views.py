@@ -17,34 +17,7 @@ from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHisto
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserSerializer, UserLoginSerializer,
                           UserRegisterSerializer, UserProfileSerializer)
-
-
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow admins to edit objects.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_staff
-
-
-class IsSuperuserOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to edit objects.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_superuser
-
-
-class IsSuperuser(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to access objects.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_superuser
+from .permissions import IsSuperuser, IsSuperuserOrReadOnly, IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
 class UserLoginAPIView(APIView):
@@ -246,7 +219,7 @@ class GroupAPIView(APIView):
 
 
 class PollAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
@@ -334,7 +307,7 @@ class PollAPIView(APIView):
 
 
 class ChoiceAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
