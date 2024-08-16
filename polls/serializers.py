@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
@@ -117,6 +117,53 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.user_type == 1:
             return "Regular"
         return "Admin"
+
+
+class UserSelfUpdateSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role']
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.password = make_password(password)
+
+        instance.save()
+        return instance
+
+    def get_role(self, obj):
+        if obj.user_type == 1:
+            return "Regular"
+        return "Admin"
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate(self, data):
+        user = self.context['request'].user
+        if not check_password(data['old_password'], user.password):
+            raise serializers.ValidationError({"old_password": "Old password is incorrect."})
+
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "New password and confirm password do not match."})
+
+        return data
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
 
 
 class TagSerializer(serializers.ModelSerializer):
