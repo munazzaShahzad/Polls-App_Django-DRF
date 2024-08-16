@@ -191,6 +191,10 @@ class PollSerializer(serializers.ModelSerializer):
             # Get the current choices in order
             existing_choices = list(instance.choices.all())
 
+            # Handle case where some choices were removed
+            if len(choices_data) < len(existing_choices):
+                raise serializers.ValidationError("Cannot remove choice from here!")
+
             # Iterate over both the existing choices and the incoming choices
             for choice_instance, choice_data in zip(existing_choices, choices_data):
                 new_text = choice_data.get('choice_text')
@@ -198,7 +202,7 @@ class PollSerializer(serializers.ModelSerializer):
                     choice_instance.choice_text = new_text
                     choice_instance.save()
 
-            # Handle cse where more choices were added in the update
+            # Handle case where more choices were added in the update
             if len(choices_data) > len(existing_choices):
                 for i in range(len(existing_choices), len(choices_data)):
                     Choice.objects.create(poll=instance, **choices_data[i])
