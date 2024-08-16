@@ -166,6 +166,13 @@ class ChangePasswordAPIView(APIView):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+
+            user = request.user
+            tokens = OutstandingToken.objects.filter(user=user)
+            if tokens.exists():
+                for token in tokens:
+                    _, _ = BlacklistedToken.objects.get_or_create(token=token)
+
             response = {
                 "detail": "Password updated successfully."
             }
