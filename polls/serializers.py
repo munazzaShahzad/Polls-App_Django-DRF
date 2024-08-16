@@ -70,55 +70,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserSerializer(serializers.ModelSerializer):
-    role = serializers.SerializerMethodField(read_only=True)
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-        help_text='Leave empty if no change needed',
-        style={'input_type': 'password'}
-    )
-    groups = serializers.PrimaryKeyRelatedField(many=True, queryset=Group.objects.all())
-
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'groups',
-                  'last_name', 'user_type', 'role']
-
-    def create(self, validated_data):
-        groups = validated_data.pop('groups', None)
-        password = validated_data.pop('password', None)
-        user = super(UserSerializer, self).create(validated_data)
-        if password:
-            user.password = make_password(password)
-            user.save()
-        if groups:
-            user.groups.set(groups)
-            user.save()
-        return user
-
-    def update(self, instance, validated_data):
-        password = validated_data.pop('password', instance.password)
-        groups = validated_data.pop('groups', instance.groups)
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        if password:
-            instance.password = make_password(password)
-
-        if groups is not None:
-            instance.groups.set(groups)
-
-        instance.save()
-        return instance
-
-    def get_role(self, obj):
-        if obj.user_type == 1:
-            return "Regular"
-        return "Admin"
-
-
 class UserSelfUpdateSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField(read_only=True)
 

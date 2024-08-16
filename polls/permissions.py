@@ -34,21 +34,3 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         elif isinstance(obj, Choice):
             return user == obj.poll.created_by
         return False
-
-
-class IsSuperuserOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to edit objects.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_superuser
-
-
-class IsSuperuser(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to access objects.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_superuser

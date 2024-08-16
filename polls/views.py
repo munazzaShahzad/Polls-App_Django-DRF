@@ -15,10 +15,10 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
-                          CategorySerializer, UserSerializer, UserLoginSerializer,
+                          CategorySerializer, UserLoginSerializer,
                           UserRegisterSerializer, UserProfileSerializer, ChangePasswordSerializer,
                           UserSelfUpdateSerializer)
-from .permissions import IsSuperuser, IsSuperuserOrReadOnly, IsAdminOrReadOnly, IsOwnerOrReadOnly
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
 class UserLoginAPIView(APIView):
@@ -104,63 +104,6 @@ class UserLogoutAPIView(APIView):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsSuperuser]
-
-    def get(self, request, pk=None, *args, **kwargs):
-        if pk:
-            user = get_object_or_404(User, pk=pk)
-            serializer = UserSerializer(user)
-            response = {
-                "user": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        else:
-            users = User.objects.all()
-            serializer = UserSerializer(users, many=True)
-            response = {
-                "users": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-
-    def post(self, request, *args, **kwargs):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "user": serializer.data
-            }
-            return Response(response, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        serializer = UserSerializer(user, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "user": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "user": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class ChangePasswordAPIView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
@@ -203,7 +146,6 @@ class UserSelfUpdateAPIView(APIView):
 
 class GroupAPIView(APIView):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsSuperuserOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
@@ -212,7 +154,7 @@ class GroupAPIView(APIView):
             response = {
                 "group": serializer.data
             }
-            return Response(group, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_200_OK)
         else:
             groups = Group.objects.all().order_by('name')
             serializer = GroupSerializer(groups, many=True)
@@ -220,43 +162,6 @@ class GroupAPIView(APIView):
                 "groups": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
-
-    def post(self, request, *args, **kwargs):
-        serializer = GroupSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "group": serializer.data
-            }
-            return Response(response, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        serializer = GroupSerializer(group, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "group": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        serializer = GroupSerializer(group, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "group": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        group.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PollAPIView(APIView):
