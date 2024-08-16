@@ -16,7 +16,8 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserSerializer, UserLoginSerializer,
-                          UserRegisterSerializer, UserProfileSerializer)
+                          UserRegisterSerializer, UserProfileSerializer, ChangePasswordSerializer,
+                          UserSelfUpdateSerializer)
 from .permissions import IsSuperuser, IsSuperuserOrReadOnly, IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
@@ -158,6 +159,39 @@ class UserAPIView(APIView):
         user = get_object_or_404(User, pk=pk)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChangePasswordAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            response = {
+                "detail": "Password updated successfully."
+            }
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserSelfUpdateAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserSelfUpdateSerializer(user)
+        response = {
+            "user data": serializer.data
+        }
+        return Response(response, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserSelfUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response = {
+                "user data": serializer.data
+            }
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GroupAPIView(APIView):
