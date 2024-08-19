@@ -27,6 +27,21 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
+class LandingPageAPIView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        login_url = reverse('user-login')
+        signup_url = reverse('user-register')
+
+        response = {
+            "login_url": login_url,
+            "signup_url": signup_url,
+        }
+
+        return Response(response, status=status.HTTP_200_OK)
+
+
 class UserLoginAPIView(APIView):
     permission_classes = []
 
