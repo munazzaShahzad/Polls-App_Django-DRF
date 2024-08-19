@@ -1,5 +1,7 @@
 from django.contrib.auth.models import Group
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
@@ -109,6 +111,47 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    new_password1 = serializers.CharField(write_only=True)
+    new_password2 = serializers.CharField(write_only=True)
+    uidb64 = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        password_reset_token = PasswordResetTokenGenerator()
+
+        if data['new_password1'] != data['new_password2']:
+            raise serializers.ValidationError({"password": "Passwords must match."})
+
+        try:
+            uid = urlsafe_base64_decode(data['uidb64']).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({"uidb64": "Invalid token."})
+
+        if not password_reset_token.check_token(user, data['token']):
+            raise serializers.ValidationError({"token": "Invalid or expired token."})
+
+        data['user'] = user
+        return data
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password1'])
+        user.save()
 
 
 class TagSerializer(serializers.ModelSerializer):
