@@ -5,6 +5,11 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import Group
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.urls import reverse
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -13,11 +18,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
+from django_site import settings
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserLoginSerializer,
                           UserRegisterSerializer, UserProfileSerializer, ChangePasswordSerializer,
-                          UserSelfUpdateSerializer)
+                          UserSelfUpdateSerializer, PasswordResetRequestSerializer, PasswordResetSerializer)
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
@@ -120,6 +126,55 @@ class ChangePasswordAPIView(APIView):
                 "detail": "Password updated successfully."
             }
             return Response(response, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetRequestAPIView(APIView):
+    permission_classes = []
+
+    password_reset_token = PasswordResetTokenGenerator()
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            user = User.objects.get(email=serializer.validated_data['email'])
+            token = self.password_reset_token.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            reset_url = request.build_absolute_uri(
+                reverse('polls:password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+
+            # Send email
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Click the link to reset your password: {reset_url}",
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
+            response = {
+                "Password reset link sent."
+            }
+
+            return Response(response, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetAPIView(APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            response = {
+                "Password has been reset."
+            }
+            return Response(response, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
