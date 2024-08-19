@@ -4,7 +4,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     PollAPIView, ChoiceAPIView, TagAPIView, CategoryAPIView,
                     ProfileAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView,
-                    ChangePasswordAPIView, UserSelfUpdateAPIView)
+                    ChangePasswordAPIView, UserSelfUpdateAPIView, PasswordResetRequestAPIView,
+                    PasswordResetAPIView)
 
 app_name = "polls"
 
@@ -19,6 +20,12 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='user-refresh-access'),
     path('auth/change_password/', ChangePasswordAPIView.as_view(), name='user-change-password'),
     path('auth/user_update/', UserSelfUpdateAPIView.as_view(), name='user-self-update'),
+
+    # Password reset request
+    path('auth/password/reset/', PasswordResetRequestAPIView.as_view(), name='password_reset_request'),
+    # Password reset confirmation
+    path('auth/password/reset/confirm/<str:uidb64>/<str:token>/', PasswordResetAPIView.as_view(),
+         name='password_reset_confirm'),
 
     # Polls
     path('polls/', PollAPIView.as_view(), name='poll-list-create'),
