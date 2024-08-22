@@ -2,7 +2,7 @@ import datetime
 
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -10,6 +10,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.auth import login, logout
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -55,6 +56,9 @@ class UserLoginAPIView(APIView):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
+
+                login(request, user)  # Log the user in and set session data
+
                 # Blacklist any existing refresh tokens for the user
                 tokens = OutstandingToken.objects.filter(user=user)
                 if tokens.exists():
@@ -86,6 +90,8 @@ class UserRegisterAPIView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
+            login(request, user)  # Log the user in and set session data
+
             refresh = RefreshToken.for_user(user)
 
             response = {
@@ -99,6 +105,9 @@ class UserRegisterAPIView(APIView):
 class UserLogoutAPIView(APIView):
     def post(self, request, *args):
         try:
+            # Handle session logout
+            logout(request)
+
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
             token.blacklist()
@@ -132,6 +141,8 @@ class ChangePasswordAPIView(APIView):
             serializer.save()
 
             user = request.user
+            logout(request)
+
             tokens = OutstandingToken.objects.filter(user=user)
             if tokens.exists():
                 for token in tokens:
@@ -380,7 +391,6 @@ class ChoiceAPIView(APIView):
 
 
 class VoteAPIView(APIView):
-
     def get(self, request, poll_id, *args, **kwargs):
         try:
             poll = Poll.objects.get(pk=poll_id)
@@ -390,7 +400,9 @@ class VoteAPIView(APIView):
             }
             if poll.expiry_date < timezone.now():
                 response.update({"status": "Closed"})
-            return Response(response, status=status.HTTP_200_OK)
+
+            return render(request, 'polls/vote.html', response)
+            # return Response(response, status=status.HTTP_200_OK)
         except Poll.DoesNotExist:
             response = {
                 "detail": "Poll not found!"
@@ -415,7 +427,7 @@ class VoteAPIView(APIView):
             response = {
                 "detail": "You have already voted!"
             }
-            return Response(response, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         choice_id = request.data.get('choice_id')
         if choice_id is None:
@@ -466,16 +478,16 @@ class PollResultsAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        polls = Poll.objects.filter(expiry_date__lte=datetime.datetime.now()).order_by('-expiry_date')
+        polls = Poll.objects.all().order_by('-expiry_date')
         user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
         user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        response = [self.get_poll_data(poll) for poll in user_polls]
+        response = {"polls": [self.get_poll_data(poll) for poll in user_polls]}
 
         for poll in polls:
             if poll in user_polls:
                 continue
-            response.append(self.get_poll_data(poll))
+            response["polls"].append(self.get_poll_data(poll))
 
         return Response(response, status=status.HTTP_200_OK)
 
