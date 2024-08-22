@@ -33,7 +33,7 @@ urlpatterns = [
     # Vote
     path('vote/<int:poll_id>/', VoteAPIView.as_view(), name='vote-poll'),
 
-    # Closed Polls Results
+    # Polls Results
     path('poll_results/', PollResultsAPIView.as_view(), name='poll-results'),
 
     # Profile
