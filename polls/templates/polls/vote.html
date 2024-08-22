@@ -2,41 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ poll.title }}</title>
+    <title id="title"></title>
 </head>
 <body>
-    <h1>{{ poll.title }}</h1>
-    <p>{{ poll.question }}</p>
+    <h1 id="poll-title"></h1>
+    <p id="poll-question"></p>
 
-    {% if status %}
-        <p>Status: {{ status }}</p>
-        <ul>
-            {% for choice in poll.choices %}
-                <li>{{ choice.choice_text }} ({{choice.votes}} votes)</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <form id="voteForm" method="post" action="{% url 'polls:vote-poll' poll.id %}">
-            {% csrf_token %}
-            <ul>
-                {% for choice in poll.choices %}
-                    <li  id="choice_{{ choice.id }}">
-                        <label>
-                            <input type="radio" name="choice" value="{{ choice.id }}" required>
-                            {{ choice.choice_text }} ({{ choice.votes }} votes)
-                        </label>
-                    </li>
-                {% endfor %}
-            </ul>
-            <button type="submit">Vote</button>
-        </form>
-    {% endif %}
+    <p id="status"></p>
+
+    <ul id="choices-list"></ul>
+
+    <form id="voteForm" method="post">
+        {% csrf_token %}
+        <ul id="vote-choices"></ul>
+        <button id="vote-button" type="submit">Vote</button>
+    </form>
 
     <script>
-        const pollId = "{{ poll.id }}";
-        const pollStatus = "{{ status }}".trim();
+        const pollId = "{{ poll_id }}";
+        const voteApiUrl = `/api/vote/${pollId}/`;
+        var status = "Open";
 
-        if (pollStatus === "Closed") {
+        fetch(voteApiUrl)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('poll-title').textContent = data.poll.title;
+                document.getElementById('title').textContent = data.poll.title;
+                document.getElementById('poll-question').textContent = data.poll.question;
+
+                const choicesList = document.getElementById('choices-list');
+                choicesList.innerHTML = '';
+
+                const voteChoices = document.getElementById('vote-choices');
+                voteChoices.innerHTML = '';
+
+                if (data.status === "Closed"){
+                    status = "Closed";
+                    document.getElementById('vote-button').style.display = 'none';
+                    document.getElementById('status').textContent = "Status: Closed";
+                    data.poll.choices.forEach(choice => {
+                        const li = document.createElement('li');
+                        li.setAttribute('id', `choice_${choice.id}`);
+                        li.innerHTML = `${choice.choice_text} (${choice.votes} votes)`;
+                        choicesList.appendChild(li);
+                    });
+                } else {
+                    data.poll.choices.forEach(choice => {
+                        const li = document.createElement('li');
+                        li.setAttribute('id', `choice_${choice.id}`);
+                        li.innerHTML = `<label><input type="radio" name="choice" value="${choice.id}" required>
+                            ${choice.choice_text} (${choice.votes} votes)</label>`;
+                        voteChoices.appendChild(li);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching poll data:', error);
+            });
+
+        if (status === "Closed") {
             console.log("Poll is closed.");
         } else {
             const socket = new WebSocket(`ws://${window.location.host}/ws/vote/${pollId}/`);
@@ -48,7 +72,8 @@
                     if ('error' in data) {
                         alert(data.error);
                     } else {
-                        const choiceElement = document.querySelector(`#choice_${data.choice_id}`);
+                        const choiceId = Number(data.choice_id);
+                        const choiceElement = document.querySelector(`#choice_${choiceId}`);
                         if (choiceElement) {
                             const voteLabel = choiceElement.querySelector('label');
                             if (data.choice_text && data.votes !== undefined) {

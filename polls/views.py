@@ -28,6 +28,13 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
+def vote_view(request, poll_id):
+    context = {
+        "poll_id": poll_id
+    }
+    return render(request, 'polls/vote.html', context=context)
+
+
 class LandingPageAPIView(APIView):
     permission_classes = []
 
@@ -401,8 +408,7 @@ class VoteAPIView(APIView):
             if poll.expiry_date < timezone.now():
                 response.update({"status": "Closed"})
 
-            return render(request, 'polls/vote.html', response)
-            # return Response(response, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_200_OK)
         except Poll.DoesNotExist:
             response = {
                 "detail": "Poll not found!"
