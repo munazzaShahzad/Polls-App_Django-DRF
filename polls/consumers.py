@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from .models import Poll, Choice, UserPollHistory
 
 
-class PollConsumer(AsyncWebsocketConsumer):
+class VoteConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.poll_id = self.scope['url_route']['kwargs']['poll_id']
         self.user = self.scope['user']
@@ -67,6 +67,7 @@ class PollConsumer(AsyncWebsocketConsumer):
 
             return {
                     'type': 'choice_update',
+                    'user': self.user.username,
                     'choice_id': choice.id,
                     'choice_text': choice.choice_text,
                     'votes': choice.votes
@@ -74,3 +75,51 @@ class PollConsumer(AsyncWebsocketConsumer):
 
         except (Poll.DoesNotExist, Choice.DoesNotExist):
             return {"error": "Not found!"}
+
+
+class PollResultsConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.poll_id = self.scope['url_route']['kwargs']['poll_id']
+        self.room_group_name = f'poll_{self.poll_id}'
+
+        self.user = self.scope['user']
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        pass
+
+    async def choice_update(self, event):
+        choice_id = event['choice_id']
+        votes = event['votes']
+        choice_text = event['choice_text']
+        voter = event['user']
+
+        top_choice = await database_sync_to_async(self.get_top_choice)(self.poll_id)
+
+        await self.send(text_data=json.dumps({
+            'poll_id': self.poll_id,
+            'voted': self.user.username == voter,
+            'choice_id': choice_id,
+            'choice_text': choice_text,
+            'votes': votes,
+            'top_choice': top_choice
+        }))
+
+    def get_top_choice(self, poll_id):
+        poll = Poll.objects.get(pk=poll_id)
+        choices = poll.choices.all()
+        top_choice = choices.order_by('-votes')[0]
+
+        return top_choice.choice_text
