@@ -6,7 +6,7 @@ from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     ProfileAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView,
                     ChangePasswordAPIView, UserSelfUpdateAPIView, PasswordResetRequestAPIView,
                     PasswordResetAPIView, LandingPageAPIView)
-from .views import vote_view
+from .views import vote_view, poll_results_view
 
 app_name = "polls"
 
@@ -36,7 +36,8 @@ urlpatterns = [
     path('api/vote/<int:poll_id>/', VoteAPIView.as_view(), name='vote-poll-api'),
 
     # Polls Results
-    path('poll_results/', PollResultsAPIView.as_view(), name='poll-results'),
+    path('poll_results/', poll_results_view, name='poll-results'),
+    path('api/poll_results/', PollResultsAPIView.as_view(), name='poll-results-api'),
 
     # Profile
     path('profile/', ProfileAPIView.as_view(), name='user-profile'),
