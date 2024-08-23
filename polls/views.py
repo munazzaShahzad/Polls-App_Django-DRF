@@ -35,6 +35,10 @@ def vote_view(request, poll_id):
     return render(request, 'polls/vote.html', context=context)
 
 
+def poll_results_view(request):
+    return render(request, 'polls/poll_results.html')
+
+
 class LandingPageAPIView(APIView):
     permission_classes = []
 
@@ -267,8 +271,9 @@ class PollAPIView(APIView):
             open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
             open_poll_ser = PollSerializer(open_polls, context={'short': True}, many=True)
 
+            user = request.user
+
             try:
-                user = request.user
                 user_tag_history = user.usertaghistory.tag_history
                 sorted_tags = sorted(user_tag_history.items(), key=lambda x: x[1], reverse=True)[:5]
                 top_tags = [tag_id for tag_id, count in sorted_tags]
@@ -276,9 +281,13 @@ class PollAPIView(APIView):
             except UserTagHistory.DoesNotExist:
                 top_tags = []
 
-            recommended_polls = (Poll.objects.
-                                 filter(Q(expiry_date__gt=datetime.datetime.now()) & Q(tags__in=top_tags)).
-                                 order_by('expiry_date'))[:5]
+            voted_poll_ids = UserPollHistory.objects.filter(user=user).values_list('poll_id', flat=True)
+
+            recommended_polls = Poll.objects.filter(
+                Q(expiry_date__gt=datetime.datetime.now()) &
+                Q(tags__in=top_tags)
+            ).exclude(id__in=voted_poll_ids).distinct().order_by('expiry_date')[:5]
+
             rec_poll_ser = PollSerializer(recommended_polls, context={'short': True}, many=True)
 
             response = {
@@ -466,18 +475,25 @@ class VoteAPIView(APIView):
 class PollResultsAPIView(APIView):
     permission_classes = []
 
-    def get_poll_data(self, poll):
+    def get_poll_data(self, poll, voted):
         choices = poll.choices.all()
         top_choice = choices.order_by('-votes')[0]
 
+        poll_status = "Open"
+        if poll.expiry_date < timezone.now():
+            poll_status = "Closed"
+
         poll_data = {
+            "id": poll.id,
+            "status": poll_status,
+            "voted": voted,
             "title": poll.title,
             "questions": poll.question,
             "choices": [
-                {"choice text": choice.choice_text, "votes": choice.votes}
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.votes}
                 for choice in choices
             ],
-            "top choice": top_choice.choice_text if top_choice else None
+            "top_choice": top_choice.choice_text if top_choice else None
         }
 
         return poll_data
@@ -488,12 +504,12 @@ class PollResultsAPIView(APIView):
         user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
         user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        response = {"polls": [self.get_poll_data(poll) for poll in user_polls]}
+        response = {"polls": [self.get_poll_data(poll, True) for poll in user_polls]}
 
         for poll in polls:
             if poll in user_polls:
                 continue
-            response["polls"].append(self.get_poll_data(poll))
+            response["polls"].append(self.get_poll_data(poll, False))
 
         return Response(response, status=status.HTTP_200_OK)
 
