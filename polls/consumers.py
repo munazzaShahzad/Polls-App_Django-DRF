@@ -123,3 +123,18 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
         top_choice = choices.order_by('-votes')[0]
 
         return top_choice.choice_text
+
+
+class NewPollConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_group_name = 'poll_results'
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def new_poll(self, event):
+        poll_data = event['poll_data']
+        poll_data.update({"voted": False})
+        await self.send(text_data=json.dumps(poll_data))

@@ -11,6 +11,8 @@ from django.utils.encoding import force_bytes
 from django.urls import reverse
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import login, logout
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -259,6 +261,32 @@ class GroupAPIView(APIView):
 class PollAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
+    def add_poll_to_results_page(self, poll):
+        # add to poll results page
+        channel_layer = get_channel_layer()
+        poll_data = {
+            'id': poll.id,
+            'title': poll.title,
+            'status': "Open",
+            'question': poll.question,
+            'choices': [
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.votes}
+                for choice in poll.choices.all()
+            ],
+            'top_choice': None
+        }
+        print(poll_data)
+        try:
+            async_to_sync(channel_layer.group_send)(
+                'poll_results',
+                {
+                    'type': 'new_poll',
+                    'poll_data': poll_data
+                }
+            )
+        except Exception as e:
+            print(f"Error sending message to group: {e}")
+
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
             poll = get_object_or_404(Poll, pk=pk)
@@ -301,6 +329,9 @@ class PollAPIView(APIView):
         user = request.user
         if serializer.is_valid():
             serializer.save(created_by=user)
+
+            self.add_poll_to_results_page(serializer.instance)
+
             response = {
                 "poll": serializer.data
             }
@@ -488,7 +519,7 @@ class PollResultsAPIView(APIView):
             "status": poll_status,
             "voted": voted,
             "title": poll.title,
-            "questions": poll.question,
+            "question": poll.question,
             "choices": [
                 {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.votes}
                 for choice in choices

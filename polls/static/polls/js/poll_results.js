@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         pollStatus.textContent = `Status: ${poll.status}`;
 
         const pollQuestion = document.createElement('h4');
-        pollQuestion.textContent = `${poll.questions}`;
+        pollQuestion.textContent = `${poll.question}`;
 
         const topChoice = document.createElement('p');
         topChoice.textContent = `Top choice: ${poll.top_choice}`;
@@ -53,6 +53,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    const newPollSocket = new WebSocket(`ws://${window.location.host}/ws/poll_results/`);
+
+    newPollSocket.onmessage = function(event) {
+        const poll = JSON.parse(event.data);
+        renderPoll(poll);
+        connectToPollGroup(poll.id);
+    };
+
+    newPollSocket.onclose = function(event) {
+        console.log('New Poll WebSocket connection closed:', event);
+    };
+
     // Function to connect to a WebSocket group for a poll
     function connectToPollGroup(pollId) {
         const socket = new WebSocket(`ws://${window.location.host}/ws/poll_results/${pollId}/`);
@@ -63,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
 
         socket.onclose = function(event) {
-            console.log('WebSocket connection closed:', event);
+            console.log('Poll Group WebSocket connection closed:', event);
         };
     }
 
@@ -81,7 +93,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (data.voted) {
                 const votedTrueContainer = document.getElementById('voted-true');
                 votedTrueContainer.appendChild(pollElement);
-
             }
         }
     }
