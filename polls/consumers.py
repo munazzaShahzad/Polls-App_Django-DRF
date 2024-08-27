@@ -42,14 +42,14 @@ class VoteConsumer(AsyncWebsocketConsumer):
 
     async def choice_update(self, event):
         choice_id = event['choice_id']
-        votes = event['votes']
+        vote_count = event['vote_count']
         choice_text = event['choice_text']
 
         # Send the updated choice data to WebSocket
         await self.send(text_data=json.dumps({
             'choice_id': choice_id,
             'choice_text': choice_text,
-            'votes': votes
+            'votes': vote_count
         }))
 
     def process_vote(self, choice_id):
@@ -62,7 +62,7 @@ class VoteConsumer(AsyncWebsocketConsumer):
             except IntegrityError:
                 return {"error": "You have already voted!"}
 
-            choice.votes += 1
+            choice.vote_count += 1
             choice.save()
 
             return {
@@ -70,7 +70,7 @@ class VoteConsumer(AsyncWebsocketConsumer):
                     'user': self.user.username,
                     'choice_id': choice.id,
                     'choice_text': choice.choice_text,
-                    'votes': choice.votes
+                    'vote_count': choice.vote_count
             }
 
         except (Poll.DoesNotExist, Choice.DoesNotExist):
@@ -102,7 +102,7 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
 
     async def choice_update(self, event):
         choice_id = event['choice_id']
-        votes = event['votes']
+        vote_count = event['vote_count']
         choice_text = event['choice_text']
         voter = event['user']
 
@@ -113,14 +113,14 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
             'voted': self.user.username == voter,
             'choice_id': choice_id,
             'choice_text': choice_text,
-            'votes': votes,
+            'votes': vote_count,
             'top_choice': top_choice
         }))
 
     def get_top_choice(self, poll_id):
         poll = Poll.objects.get(pk=poll_id)
         choices = poll.choices.all()
-        top_choice = choices.order_by('-votes')[0]
+        top_choice = choices.order_by('-vote_count')[0]
 
         return top_choice.choice_text
 
