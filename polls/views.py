@@ -44,8 +44,10 @@ class UserLoginAPIView(APIView):
                 refresh = RefreshToken.for_user(user)
 
                 response = {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
+                    "data": {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                    }
                 }
                 return Response(response, status=status.HTTP_200_OK)
             else:
@@ -68,8 +70,10 @@ class UserRegisterAPIView(APIView):
             refresh = RefreshToken.for_user(user)
 
             response = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
+                "data": {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                }
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -128,7 +132,7 @@ class UserSelfUpdateAPIView(APIView):
         user = request.user
         serializer = UserSelfUpdateSerializer(user)
         response = {
-            "user data": serializer.data
+            "data": serializer.data
         }
         return Response(response, status=status.HTTP_200_OK)
 
@@ -138,7 +142,7 @@ class UserSelfUpdateAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "user data": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -152,14 +156,14 @@ class GroupAPIView(APIView):
             group = get_object_or_404(Group, pk=pk)
             serializer = GroupSerializer(group)
             response = {
-                "group": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
             groups = Group.objects.all().order_by('name')
             serializer = GroupSerializer(groups, many=True)
             response = {
-                "groups": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -172,7 +176,7 @@ class PollAPIView(APIView):
             poll = get_object_or_404(Poll, pk=pk)
             serializer = PollSerializer(poll)
             response = {
-                "poll": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
@@ -194,8 +198,10 @@ class PollAPIView(APIView):
             rec_poll_ser = PollSerializer(recommended_polls, context={'short': True}, many=True)
 
             response = {
-                "recommendations": rec_poll_ser.data,
-                "open_polls": open_poll_ser.data
+                "data": {
+                    "recommendations": rec_poll_ser.data,
+                    "open_polls": open_poll_ser.data
+                }
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -205,7 +211,7 @@ class PollAPIView(APIView):
         if serializer.is_valid():
             serializer.save(created_by=user)
             response = {
-                "poll": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -223,7 +229,7 @@ class PollAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "poll": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -241,7 +247,7 @@ class PollAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "poll": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -260,14 +266,14 @@ class ChoiceAPIView(APIView):
             choice = get_object_or_404(Choice, pk=pk)
             serializer = ChoiceSerializer(choice)
             response = {
-                "choice": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
             choices = Choice.objects.all()
             serializer = ChoiceSerializer(choices, many=True)
             response = {
-                "choices": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -276,7 +282,7 @@ class ChoiceAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "choice": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -287,7 +293,7 @@ class ChoiceAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "choice": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -298,7 +304,7 @@ class ChoiceAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "choice": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -316,7 +322,7 @@ class VoteAPIView(APIView):
             poll = Poll.objects.get(pk=poll_id)
             serializer = PollSerializer(poll, context={'short': True})
             response = {
-                "poll": serializer.data
+                "data": serializer.data
             }
             if poll.expiry_date < timezone.now():
                 response.update({"status": "Closed"})
@@ -362,7 +368,7 @@ class VoteAPIView(APIView):
             }
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        choice.votes += 1
+        choice.vote_count += 1
         choice.save()
 
         user = request.user
@@ -370,7 +376,7 @@ class VoteAPIView(APIView):
 
         serializer = PollSerializer(poll, context={'short': True})
         response = {
-            "poll": serializer.data
+            "data": serializer.data
         }
         return Response(response, status=status.HTTP_200_OK)
 
@@ -380,13 +386,13 @@ class PollResultsAPIView(APIView):
 
     def get_poll_data(self, poll):
         choices = poll.choices.all()
-        top_choice = choices.order_by('-votes')[0]
+        top_choice = choices.order_by('-vote_count')[0]
 
         poll_data = {
             "title": poll.title,
             "questions": poll.question,
             "choices": [
-                {"choice text": choice.choice_text, "votes": choice.votes}
+                {"choice text": choice.choice_text, "vote_count": choice.vote_count}
                 for choice in choices
             ],
             "top choice": top_choice.choice_text if top_choice else None
@@ -400,12 +406,12 @@ class PollResultsAPIView(APIView):
         user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
         user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        response = [self.get_poll_data(poll) for poll in user_polls]
+        response = {"data": [self.get_poll_data(poll) for poll in user_polls]}
 
         for poll in polls:
             if poll in user_polls:
                 continue
-            response.append(self.get_poll_data(poll))
+            response["data"].append(self.get_poll_data(poll))
 
         return Response(response, status=status.HTTP_200_OK)
 
@@ -418,14 +424,14 @@ class TagAPIView(APIView):
             tag = get_object_or_404(Tag, pk=pk)
             serializer = TagSerializer(tag)
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
             tags = Tag.objects.all()
             serializer = TagSerializer(tags, many=True)
             response = {
-                "tags": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -434,7 +440,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -445,7 +451,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -456,7 +462,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -475,14 +481,14 @@ class CategoryAPIView(APIView):
             category = get_object_or_404(Category, pk=pk)
             serializer = CategorySerializer(category)
             response = {
-                "category": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
             categories = Category.objects.all()
             serializer = CategorySerializer(categories, many=True)
             response = {
-                "categories": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -491,7 +497,7 @@ class CategoryAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "category": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -502,7 +508,7 @@ class CategoryAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "category": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -513,7 +519,7 @@ class CategoryAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "category": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -549,16 +555,18 @@ class ProfileAPIView(APIView):
         tags_serializer = TagSerializer(top_tags, many=True)
 
         response = {
-            'profile': profile_serializer.data,
-            'last_voted_polls': polls_serializer.data,
-            'top_tags': tags_serializer.data
+            "data": {
+                'profile': profile_serializer.data,
+                'last_voted_polls': polls_serializer.data,
+                'top_tags': tags_serializer.data
+            }
         }
 
         # Admin users additional data
         if profile.role == "Admin":
             created_polls = Poll.objects.filter(created_by=user)
             created_polls_ser = PollSerializer(created_polls, context={'short': True}, many=True)
-            response.update({
+            response["data"].update({
                 'created_polls': created_polls_ser.data,
             })
 
