@@ -15,6 +15,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.pagination import PageNumberPagination, CursorPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -545,7 +546,20 @@ class PollResultsAPIView(APIView):
         return Response(response, status=status.HTTP_200_OK)
 
 
+class TagPagination(PageNumberPagination):
+
+    def get_paginated_response(self, data):
+        return Response({
+            'links': {
+                'next': self.get_next_link(),
+                'previous': self.get_previous_link()
+            },
+            'results': data
+        })
+
+
 class TagAPIView(APIView):
+    pagination_class = TagPagination
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -558,11 +572,10 @@ class TagAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             tags = Tag.objects.all()
-            serializer = TagSerializer(tags, many=True)
-            response = {
-                "tags": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
+            paginator = self.pagination_class()
+            paginated_tags = paginator.paginate_queryset(tags, request)
+            serializer = TagSerializer(paginated_tags, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         serializer = TagSerializer(data=request.data)
