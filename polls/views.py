@@ -15,7 +15,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.pagination import PageNumberPagination, CursorPagination
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -40,6 +40,17 @@ def vote_view(request, poll_id):
 
 def poll_results_view(request):
     return render(request, 'polls/poll_results.html')
+
+
+class CustomPagination(PageNumberPagination):
+    def get_paginated_response(self, data):
+        return Response({
+            'links': {
+                'next': self.get_next_link(),
+                'previous': self.get_previous_link()
+            },
+            'results': data
+        })
 
 
 class LandingPageAPIView(APIView):
@@ -223,7 +234,7 @@ class UserSelfUpdateAPIView(APIView):
         user = request.user
         serializer = UserSelfUpdateSerializer(user)
         response = {
-            "user data": serializer.data
+            "data": serializer.data
         }
         return Response(response, status=status.HTTP_200_OK)
 
@@ -233,13 +244,14 @@ class UserSelfUpdateAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "user data": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GroupAPIView(APIView):
+    pagination_class = CustomPagination
     authentication_classes = [TokenAuthentication]
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -252,14 +264,14 @@ class GroupAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             groups = Group.objects.all().order_by('name')
-            serializer = GroupSerializer(groups, many=True)
-            response = {
-                "groups": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
+            paginator = self.pagination_class()
+            paginated_groups = paginator.paginate_queryset(groups, request)
+            serializer = GroupSerializer(paginated_groups, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
 
 class PollAPIView(APIView):
+    pagination_class = CustomPagination
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def add_poll_to_results_page(self, poll):
@@ -298,7 +310,10 @@ class PollAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
-            open_poll_ser = PollSerializer(open_polls, context={'short': True}, many=True)
+
+            paginator = self.pagination_class()
+            paginated_open_polls = paginator.paginate_queryset(open_polls, request)
+            open_poll_ser = PollSerializer(paginated_open_polls, context={'short': True}, many=True)
 
             user = request.user
 
@@ -320,8 +335,10 @@ class PollAPIView(APIView):
             rec_poll_ser = PollSerializer(recommended_polls, context={'short': True}, many=True)
 
             response = {
-                "recommendations": rec_poll_ser.data,
-                "open_polls": open_poll_ser.data
+                "data": {
+                    "recommendations": rec_poll_ser.data,
+                    "open_polls": open_poll_ser.data
+                }
             }
             return Response(response, status=status.HTTP_200_OK)
 
@@ -382,6 +399,7 @@ class PollAPIView(APIView):
 
 
 class ChoiceAPIView(APIView):
+    pagination_class = CustomPagination
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -394,11 +412,10 @@ class ChoiceAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             choices = Choice.objects.all()
-            serializer = ChoiceSerializer(choices, many=True)
-            response = {
-                "choices": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
+            paginator = self.pagination_class()
+            paginated_choices = paginator.paginate_queryset(choices, request)
+            serializer = TagSerializer(paginated_choices, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         serializer = ChoiceSerializer(data=request.data)
@@ -546,20 +563,8 @@ class PollResultsAPIView(APIView):
         return Response(response, status=status.HTTP_200_OK)
 
 
-class TagPagination(PageNumberPagination):
-
-    def get_paginated_response(self, data):
-        return Response({
-            'links': {
-                'next': self.get_next_link(),
-                'previous': self.get_previous_link()
-            },
-            'results': data
-        })
-
-
 class TagAPIView(APIView):
-    pagination_class = TagPagination
+    pagination_class = CustomPagination
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -616,6 +621,7 @@ class TagAPIView(APIView):
 
 
 class CategoryAPIView(APIView):
+    pagination_class = CustomPagination
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -628,11 +634,10 @@ class CategoryAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             categories = Category.objects.all()
-            serializer = CategorySerializer(categories, many=True)
-            response = {
-                "categories": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
+            paginator = self.pagination_class()
+            paginated_categories = paginator.paginate_queryset(categories, request)
+            serializer = TagSerializer(paginated_categories, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         serializer = CategorySerializer(data=request.data)
