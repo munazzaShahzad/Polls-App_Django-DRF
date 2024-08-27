@@ -90,4 +90,35 @@
         font-weight: bold;
         color: #3766d4;
     }
+
+    #pagination-controls {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    #prev-button,
+    #next-button {
+        background-color: #1c44a3;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    #prev-button:hover,
+    #next-button:hover {
+        background-color: #3766d4;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #prev-button:disabled,
+    #next-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
 </style>
