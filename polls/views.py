@@ -43,6 +43,8 @@ def poll_results_view(request):
 
 
 class CustomPagination(PageNumberPagination):
+    page_size = 6
+
     def get_paginated_response(self, data):
         return Response({
             'links': {
@@ -314,6 +316,7 @@ class PollAPIView(APIView):
             paginator = self.pagination_class()
             paginated_open_polls = paginator.paginate_queryset(open_polls, request)
             open_poll_ser = PollSerializer(paginated_open_polls, context={'short': True}, many=True)
+            paginated_response = paginator.get_paginated_response(open_poll_ser.data)
 
             user = request.user
 
@@ -337,7 +340,7 @@ class PollAPIView(APIView):
             response = {
                 "data": {
                     "recommendations": rec_poll_ser.data,
-                    "open_polls": open_poll_ser.data
+                    "open_polls": paginated_response.data
                 }
             }
             return Response(response, status=status.HTTP_200_OK)
@@ -522,6 +525,7 @@ class VoteAPIView(APIView):
 
 
 class PollResultsAPIView(APIView):
+    pagination_class = CustomPagination
     permission_classes = []
 
     def get_poll_data(self, poll, voted):
@@ -553,12 +557,25 @@ class PollResultsAPIView(APIView):
         user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
         user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        response = {"polls": [self.get_poll_data(poll, True) for poll in user_polls]}
+        user_polls_data = [self.get_poll_data(poll, True) for poll in user_polls]
+        other_polls_data = []
 
         for poll in polls:
             if poll in user_polls:
                 continue
-            response["polls"].append(self.get_poll_data(poll, False))
+            other_polls_data.append(self.get_poll_data(poll, False))
+
+        paginator = self.pagination_class()
+
+        paginated_other_polls = paginator.paginate_queryset(other_polls_data, request, view=self)
+        other_polls_paginated_response = paginator.get_paginated_response(paginated_other_polls)
+
+        response = {
+            "data": {
+                "user_polls": user_polls_data,
+                "other_polls": other_polls_paginated_response.data
+            }
+        }
 
         return Response(response, status=status.HTTP_200_OK)
 

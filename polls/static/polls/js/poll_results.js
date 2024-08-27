@@ -2,16 +2,64 @@ document.addEventListener('DOMContentLoaded', async function() {
     const votedTrueContainer = document.getElementById('voted-true');
     const votedFalseContainer = document.getElementById('voted-false');
 
+    const prevButton = document.getElementById('prev-button');
+    const nextButton = document.getElementById('next-button');
+
+    let currentPage = 1;
+    let nextPage = false;
+
+    prevButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+            fetchOtherPolls(currentPage - 1);
+        }
+    });
+
+    nextButton.addEventListener('click', () => {
+        if (nextPage) {
+            fetchOtherPolls(currentPage + 1);
+        }
+    });
+
     try {
         const response = await fetch('/api/poll_results/');
         const data = await response.json();
+        const user_polls = data.data.user_polls;
 
-        data.polls.forEach(poll => {
+        user_polls.forEach(poll => {
             renderPoll(poll);
             connectToPollGroup(poll.id);
         });
     } catch (error) {
-        console.error('Error fetching poll data:', error);
+        console.error('Error fetching user polls data:', error);
+    }
+
+    async function fetchOtherPolls(page)
+    {
+        try {
+            const response = await fetch(`/api/poll_results/?page=${page}`);
+            const data = await response.json();
+            const other_polls = data.data.other_polls;
+
+            votedFalseContainer.innerHTML = '';
+
+            other_polls.results.forEach(poll => {
+                renderPoll(poll);
+                connectToPollGroup(poll.id);
+            });
+
+            currentPage = page;
+
+            const nextLink = other_polls.links && other_polls.links.next;
+            const prevLink = other_polls.links && other_polls.links.previous;
+
+            // Update button states based on links
+            prevButton.disabled = !prevLink;
+            nextButton.disabled = !nextLink;
+            nextPage = nextLink;
+
+        } catch (error) {
+            console.error('Error fetching other polls data:', error);
+        }
     }
 
     function renderPoll(poll) {
@@ -36,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         poll.choices.forEach(choice => {
             const choiceItem = document.createElement('li');
             choiceItem.setAttribute('id', `choice_${choice.id}`);
-            choiceItem.textContent = `${choice.choice_text} - ${choice.votes} votes`;
+            choiceItem.textContent = `${choice.choice_text} - ${choice.vote_count} votes`;
             choicesList.appendChild(choiceItem);
         });
 
@@ -59,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const poll = JSON.parse(event.data);
         renderPoll(poll);
         connectToPollGroup(poll.id);
+        fetchOtherPolls(currentPage);
     };
 
     newPollSocket.onclose = function(event) {
@@ -93,7 +142,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (data.voted) {
                 const votedTrueContainer = document.getElementById('voted-true');
                 votedTrueContainer.appendChild(pollElement);
+                fetchOtherPolls(currentPage);
             }
         }
     }
+
+    // Initial fetch
+    fetchOtherPolls(1);
+
 });

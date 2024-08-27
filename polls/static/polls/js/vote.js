@@ -22,7 +22,7 @@ fetch(voteApiUrl)
             data.poll.choices.forEach(choice => {
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
-                li.innerHTML = `${choice.choice_text} (${choice.votes} votes)`;
+                li.innerHTML = `${choice.choice_text} (${choice.vote_count} votes)`;
                 choicesList.appendChild(li);
             });
         } else {
@@ -30,7 +30,7 @@ fetch(voteApiUrl)
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
                 li.innerHTML = `<label><input type="radio" name="choice" value="${choice.id}" required>
-                    ${choice.choice_text} (${choice.votes} votes)</label>`;
+                    ${choice.choice_text} (${choice.vote_count} votes)</label>`;
                 voteChoices.appendChild(li);
             });
         }
