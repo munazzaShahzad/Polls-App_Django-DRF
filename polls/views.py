@@ -449,7 +449,7 @@ class VoteAPIView(APIView):
             }
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        choice.votes += 1
+        choice.vote_count += 1
         choice.save()
 
         user = request.user
@@ -467,13 +467,13 @@ class PollResultsAPIView(APIView):
 
     def get_poll_data(self, poll):
         choices = poll.choices.all()
-        top_choice = choices.order_by('-votes')[0]
+        top_choice = choices.order_by('-vote_count')[0]
 
         poll_data = {
             "title": poll.title,
             "questions": poll.question,
             "choices": [
-                {"choice text": choice.choice_text, "votes": choice.votes}
+                {"choice text": choice.choice_text, "vote_count": choice.vote_count}
                 for choice in choices
             ],
             "top choice": top_choice.choice_text if top_choice else None
