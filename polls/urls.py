@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     PollAPIView, ChoiceAPIView, TagAPIView, CategoryAPIView,
-                    ProfileAPIView, UserAPIView, GroupAPIView)
+                    ProfileAPIView, UserAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView)
 
 app_name = "polls"
 
@@ -20,6 +20,12 @@ urlpatterns = [
     # Polls
     path('polls/', PollAPIView.as_view(), name='poll-list-create'),
     path('polls/<int:pk>/', PollAPIView.as_view(), name='poll-detail'),
+
+    # Vote
+    path('vote/<int:poll_id>/', VoteAPIView.as_view(), name='vote-poll'),
+
+    # Closed Polls Results
+    path('poll_results/', PollResultsAPIView.as_view(), name='poll-results'),
 
     # Choices
     path('choices/', ChoiceAPIView.as_view(), name='choice-list-create'),

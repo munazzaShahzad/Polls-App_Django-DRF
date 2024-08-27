@@ -134,47 +134,81 @@ class CategorySerializer(serializers.ModelSerializer):
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ['id', 'choice_text']
+        fields = ['id', 'choice_text', 'vote_count']
+        read_only_fields = ['vote_count']
 
 
 class PollSerializer(serializers.ModelSerializer):
     choices = ChoiceSerializer(many=True)
     created_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    category = CategorySerializer()
-    tags = TagSerializer(many=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
 
     class Meta:
         model = Poll
         fields = ['id', 'title', 'question', 'category', 'tags', 'expiry_date', 'choices', 'created_by']
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Customize the fields for vote API
+        if self.context.get('short', False):
+            fields = ['id', 'title', 'question', 'choices']
+            representation = {field: representation[field] for field in fields}
+        return representation
+
     def create(self, validated_data):
         choices_data = validated_data.pop('choices')
         tags_data = validated_data.pop('tags')
-        try:
-            poll = Poll.objects.create(**validated_data)
+
+        if not choices_data or len(choices_data) < 1:
+            raise serializers.ValidationError("At least one choice is required.")
+
+        # Create Poll instance
+        poll = Poll.objects.create(**validated_data)
+
+        # Handle linking existing tags
+        if tags_data is not None:
             poll.tags.set(tags_data)
-            for choice_data in choices_data:
-                Choice.objects.create(poll=poll, **choice_data)
-            return poll
-        except serializers.ValidationError as e:
-            raise e
+
+        # Create Choice instances
+        for choice_data in choices_data:
+            Choice.objects.create(poll=poll, **choice_data)
+
+        return poll
 
     def update(self, instance, validated_data):
         choices_data = validated_data.pop('choices', None)
         tags_data = validated_data.pop('tags', None)
 
+        # Update Poll fields
         instance.title = validated_data.get('title', instance.title)
         instance.question = validated_data.get('question', instance.question)
         instance.expiry_date = validated_data.get('expiry_date', instance.expiry_date)
+        instance.category = validated_data.get('category', instance.category)
         instance.save()
 
+        # Update tags
         if tags_data is not None:
             instance.tags.set(tags_data)
 
+        # Update choices
         if choices_data is not None:
-            # Update choices
-            instance.choices.all().delete()
-            for choice_data in choices_data:
-                Choice.objects.create(poll=instance, **choice_data)
+            if len(choices_data) < 1:
+                raise serializers.ValidationError("At least one choice is required.")
+
+            # Get the current choices in order
+            existing_choices = list(instance.choices.all())
+
+            # Iterate over both the existing choices and the incoming choices
+            for choice_instance, choice_data in zip(existing_choices, choices_data):
+                new_text = choice_data.get('choice_text')
+                if choice_instance.choice_text != new_text:
+                    choice_instance.choice_text = new_text
+                    choice_instance.save()
+
+            # Handle cse where more choices were added in the update
+            if len(choices_data) > len(existing_choices):
+                for i in range(len(existing_choices), len(choices_data)):
+                    Choice.objects.create(poll=instance, **choices_data[i])
 
         return instance
