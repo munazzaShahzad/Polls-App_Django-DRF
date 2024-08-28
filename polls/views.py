@@ -8,11 +8,13 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.urls import reverse
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import login, logout
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.reverse import reverse, reverse_lazy
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.pagination import PageNumberPagination
@@ -59,8 +61,8 @@ class LandingPageAPIView(APIView):
     permission_classes = []
 
     def get(self, request):
-        login_url = reverse('user-login')
-        signup_url = reverse('user-register')
+        login_url = reverse_lazy('polls:user-login', request=request)
+        signup_url = reverse('polls:user-register', request=request)
 
         response = {
             "login_url": login_url,
@@ -552,12 +554,17 @@ class PollResultsAPIView(APIView):
         return poll_data
 
     def get(self, request):
-        user = request.user
         polls = Poll.objects.all().order_by('-expiry_date')
-        user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
-        user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
-        user_polls_data = [self.get_poll_data(poll, True) for poll in user_polls]
+        user = request.user
+        if user.is_authenticated:
+            user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
+            user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
+            user_polls_data = [self.get_poll_data(poll, True) for poll in user_polls]
+        else:
+            user_polls = []
+            user_polls_data = []
+
         other_polls_data = []
 
         for poll in polls:
@@ -581,6 +588,10 @@ class PollResultsAPIView(APIView):
 
 
 class TagAPIView(APIView):
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name']
+    filterset_fields = ['name']
     pagination_class = CustomPagination
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
 
@@ -594,6 +605,10 @@ class TagAPIView(APIView):
             return Response(response, status=status.HTTP_200_OK)
         else:
             tags = Tag.objects.all()
+
+            for backend in list(self.filter_backends):
+                tags = backend().filter_queryset(request, tags, self)
+
             paginator = self.pagination_class()
             paginated_tags = paginator.paginate_queryset(tags, request)
             serializer = TagSerializer(paginated_tags, many=True)
