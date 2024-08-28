@@ -15,36 +15,10 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
-                          CategorySerializer, UserSerializer, UserLoginSerializer,
-                          UserRegisterSerializer, UserProfileSerializer)
-
-
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow admins to edit objects.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_staff
-
-
-class IsSuperuserOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to edit objects.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_superuser
-
-
-class IsSuperuser(permissions.BasePermission):
-    """
-    Custom permission to only allow superusers to access objects.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_superuser
+                          CategorySerializer, UserLoginSerializer,
+                          UserRegisterSerializer, UserProfileSerializer, ChangePasswordSerializer,
+                          UserSelfUpdateSerializer)
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
 class UserLoginAPIView(APIView):
@@ -134,38 +108,37 @@ class UserLogoutAPIView(APIView):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsSuperuser]
-
-    def get(self, request, pk=None, *args, **kwargs):
-        if pk:
-            user = get_object_or_404(User, pk=pk)
-            serializer = UserSerializer(user)
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        else:
-            users = User.objects.all()
-            serializer = UserSerializer(users, many=True)
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-
+class ChangePasswordAPIView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = UserSerializer(data=request.data)
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+
+            user = request.user
+            tokens = OutstandingToken.objects.filter(user=user)
+            if tokens.exists():
+                for token in tokens:
+                    _, _ = BlacklistedToken.objects.get_or_create(token=token)
+
             response = {
-                "data": serializer.data
+                "detail": "Password updated successfully."
             }
-            return Response(response, status=status.HTTP_201_CREATED)
+            return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        serializer = UserSerializer(user, data=request.data)
+
+class UserSelfUpdateAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserSelfUpdateSerializer(user)
+        response = {
+            "data": serializer.data
+        }
+        return Response(response, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserSelfUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             response = {
@@ -173,27 +146,10 @@ class UserAPIView(APIView):
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, *args, **kwargs):
-        user = get_object_or_404(User, pk=pk)
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GroupAPIView(APIView):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsSuperuserOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
@@ -202,7 +158,7 @@ class GroupAPIView(APIView):
             response = {
                 "data": serializer.data
             }
-            return Response(group, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_200_OK)
         else:
             groups = Group.objects.all().order_by('name')
             serializer = GroupSerializer(groups, many=True)
@@ -211,46 +167,9 @@ class GroupAPIView(APIView):
             }
             return Response(response, status=status.HTTP_200_OK)
 
-    def post(self, request, *args, **kwargs):
-        serializer = GroupSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        serializer = GroupSerializer(group, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        serializer = GroupSerializer(group, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            response = {
-                "data": serializer.data
-            }
-            return Response(response, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, *args, **kwargs):
-        group = get_object_or_404(Group, pk=pk)
-        group.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class PollAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
@@ -340,7 +259,7 @@ class PollAPIView(APIView):
 
 
 class ChoiceAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
     def get(self, request, pk=None, *args, **kwargs):
         if pk:

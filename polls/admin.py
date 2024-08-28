@@ -2,6 +2,7 @@ import datetime
 
 from django.contrib import admin
 from django.utils import timezone
+from django.contrib.auth.admin import UserAdmin
 
 from .models import Poll, Choice, User, Category, Tag, UserTagHistory, UserPollHistory, UserProfile
 
@@ -27,9 +28,18 @@ class ExpiredPollsFilter(admin.SimpleListFilter):
             )
 
 
-class UserAdmin(admin.ModelAdmin):
+class CustomUserAdmin(UserAdmin):
     list_display = ["id", "username"]
     list_filter = ["is_staff"]
+
+    # fieldsets for updating a user
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Additional info', {'fields': ('user_type',)}),  # Add user_type here
+    )
 
 
 class PollAdmin(admin.ModelAdmin):
@@ -48,7 +58,7 @@ class PollAdmin(admin.ModelAdmin):
 
 admin.site.register(Poll, PollAdmin)
 admin.site.register(Choice)
-admin.site.register(User, UserAdmin)
+admin.site.register(User, CustomUserAdmin)
 admin.site.register(UserProfile)
 admin.site.register(Category)
 admin.site.register(Tag)

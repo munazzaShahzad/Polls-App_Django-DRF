@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
@@ -70,46 +70,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSelfUpdateSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField(read_only=True)
-    password = serializers.CharField(
-        write_only=True,
-        required=True,
-        help_text='Leave empty if no change needed',
-        style={'input_type': 'password'}
-    )
-    groups = serializers.PrimaryKeyRelatedField(many=True, queryset=Group.objects.all())
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'groups',
-                  'last_name', 'user_type', 'role']
-
-    def create(self, validated_data):
-        groups = validated_data.pop('groups', None)
-        password = validated_data.pop('password', None)
-        user = super(UserSerializer, self).create(validated_data)
-        if password:
-            user.password = make_password(password)
-            user.save()
-        if groups:
-            user.groups.set(groups)
-            user.save()
-        return user
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role']
 
     def update(self, instance, validated_data):
-        password = validated_data.pop('password', instance.password)
-        groups = validated_data.pop('groups', instance.groups)
-
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
-        if password:
-            instance.password = make_password(password)
-
-        if groups is not None:
-            instance.groups.set(groups)
-
         instance.save()
         return instance
 
@@ -117,6 +87,28 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.user_type == 1:
             return "Regular"
         return "Admin"
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate(self, data):
+        user = self.context['request'].user
+        if not check_password(data['old_password'], user.password):
+            raise serializers.ValidationError({"old_password": "Old password is incorrect."})
+
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "New password and confirm password do not match."})
+
+        return data
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -199,6 +191,10 @@ class PollSerializer(serializers.ModelSerializer):
             # Get the current choices in order
             existing_choices = list(instance.choices.all())
 
+            # Handle case where some choices were removed
+            if len(choices_data) < len(existing_choices):
+                raise serializers.ValidationError("Cannot remove choice from here!")
+
             # Iterate over both the existing choices and the incoming choices
             for choice_instance, choice_data in zip(existing_choices, choices_data):
                 new_text = choice_data.get('choice_text')
@@ -206,7 +202,7 @@ class PollSerializer(serializers.ModelSerializer):
                     choice_instance.choice_text = new_text
                     choice_instance.save()
 
-            # Handle cse where more choices were added in the update
+            # Handle case where more choices were added in the update
             if len(choices_data) > len(existing_choices):
                 for i in range(len(existing_choices), len(choices_data)):
                     Choice.objects.create(poll=instance, **choices_data[i])

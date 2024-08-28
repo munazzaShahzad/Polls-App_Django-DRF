@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     PollAPIView, ChoiceAPIView, TagAPIView, CategoryAPIView,
-                    ProfileAPIView, UserAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView)
+                    ProfileAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView,
+                    ChangePasswordAPIView, UserSelfUpdateAPIView)
 
 app_name = "polls"
 
@@ -16,6 +17,8 @@ urlpatterns = [
     path('auth/register/', UserRegisterAPIView.as_view(), name='user-register'),
     path('auth/logout/', UserLogoutAPIView.as_view(), name='user-logout'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='user-refresh-access'),
+    path('auth/change_password/', ChangePasswordAPIView.as_view(), name='user-change-password'),
+    path('auth/user_update/', UserSelfUpdateAPIView.as_view(), name='user-self-update'),
 
     # Polls
     path('polls/', PollAPIView.as_view(), name='poll-list-create'),
@@ -38,10 +41,6 @@ urlpatterns = [
     # Categories
     path('categories/', CategoryAPIView.as_view(), name='category-list-create'),
     path('categories/<int:pk>/', CategoryAPIView.as_view(), name='category-detail'),
-
-    # Users
-    path('users/', UserAPIView.as_view(), name='user-list'),
-    path('users/<int:pk>/', UserAPIView.as_view(), name='user-detail'),
 
     # Groups
     path('groups/', GroupAPIView.as_view(), name='group-list'),
