@@ -35,8 +35,10 @@ class LandingPageAPIView(APIView):
         signup_url = reverse('user-register')
 
         response = {
-            "login_url": login_url,
-            "signup_url": signup_url,
+            "data": {
+                "login_url": login_url,
+                "signup_url": signup_url,
+            }
         }
 
         return Response(response, status=status.HTTP_200_OK)
@@ -174,7 +176,7 @@ class PasswordResetRequestAPIView(APIView):
             )
 
             response = {
-                "Password reset link sent."
+                "data": "Password reset link sent."
             }
 
             return Response(response, status=status.HTTP_200_OK)
@@ -190,7 +192,7 @@ class PasswordResetAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "Password has been reset."
+                "data": "Password has been reset."
             }
             return Response(response, status=status.HTTP_200_OK)
 
