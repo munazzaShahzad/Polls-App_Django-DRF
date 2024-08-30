@@ -121,4 +121,19 @@
         cursor: not-allowed;
     }
 
+    @media (max-width: 1024px) {
+        .grid-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .grid-container {
+            grid-template-columns: 1fr;
+        }
+        .heading {
+            background: #c7edc5;
+        }
+    }
+
 </style>
