@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth.models import Group
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -6,6 +8,26 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from .models import Tag, Poll, Choice, User, UserProfile, Category
+
+
+def validate_password(password):
+    errors = []
+
+    if len(password) < 8:
+        errors.append("Password must be at least 8 characters long.")
+    if not re.search(r'[A-Z]', password):
+        errors.append("Password must contain at least one uppercase letter.")
+    if not re.search(r'[a-z]', password):
+        errors.append("Password must contain at least one lowercase letter.")
+    if not re.search(r'[0-9]', password):
+        errors.append("Password must contain at least one digit.")
+    if not re.search(r'[!@#$%^&*(),.?\":{}|<>]', password):
+        errors.append("Password must contain at least one special character.")
+
+    if errors:
+        raise ValidationError({"detail": errors})
+
+    return password
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -56,6 +78,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         if instance['password'] != instance['confirm_password']:
             raise ValidationError({"message": "Password mismatch!"})
 
+        validate_password(instance['password'])
+
         if User.objects.filter(email=instance['email']).exists():
             raise ValidationError({"message": "Account for this email already exists!"})
 
@@ -102,6 +126,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "New password and confirm password do not match."})
 
+        validate_password(data['new_password'])
+
         return data
 
     def save(self, **kwargs):
@@ -133,6 +159,8 @@ class PasswordResetSerializer(serializers.Serializer):
 
         if data['new_password1'] != data['new_password2']:
             raise serializers.ValidationError({"password": "Passwords must match."})
+
+        validate_password(data['new_password1'])
 
         try:
             uid = urlsafe_base64_decode(data['uidb64']).decode()
