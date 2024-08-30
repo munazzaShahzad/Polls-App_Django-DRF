@@ -4,8 +4,6 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db import IntegrityError
 
-from .models import Poll, Choice, UserPollHistory
-
 
 class VoteConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -56,6 +54,8 @@ class VoteConsumer(AsyncWebsocketConsumer):
         }))
 
     def process_vote(self, choice_id, up_voted):
+        from .models import Poll, Choice, UserPollHistory
+
         try:
             poll = Poll.objects.get(pk=self.poll_id)
             user_choice = None
@@ -137,6 +137,8 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
         }))
 
     def get_top_choice(self, poll_id):
+        from .models import Poll
+
         poll = Poll.objects.get(pk=poll_id)
         choices = poll.choices.all()
         top_choice = choices.order_by('-vote_count')[0]
