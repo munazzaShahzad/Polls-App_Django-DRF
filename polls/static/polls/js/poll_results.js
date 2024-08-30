@@ -70,8 +70,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         pollElement.className = 'poll';
         pollElement.setAttribute('id', `poll_${poll.id}`);
 
+        const pollLink = document.createElement('a');
+        pollLink.href = `http://${window.location.host}/vote/${poll.id}`;
+
         const pollTitle = document.createElement('h3');
         pollTitle.textContent = poll.title;
+
+        pollLink.appendChild(pollTitle);
 
         const pollStatus = document.createElement('p');
         pollStatus.textContent = `Status: ${poll.status}`;
@@ -91,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             choicesList.appendChild(choiceItem);
         });
 
-        pollElement.appendChild(pollTitle);
+        pollElement.appendChild(pollLink);
         pollElement.appendChild(pollStatus);
         pollElement.appendChild(pollQuestion);
         pollElement.appendChild(topChoice);
