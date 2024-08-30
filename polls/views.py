@@ -10,6 +10,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django_filters.rest_framework import DjangoFilterBackend
@@ -33,6 +34,7 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
+@login_required
 def vote_view(request, poll_id):
     context = {
         "poll_id": poll_id
@@ -221,8 +223,13 @@ class PasswordResetRequestAPIView(APIView):
 class PasswordResetAPIView(APIView):
     permission_classes = []
 
-    def post(self, request, *args, **kwargs):
-        serializer = PasswordResetSerializer(data=request.data)
+    def post(self, request, uidb64, token, *args, **kwargs):
+        data = {
+            **request.data,
+            "uidb64": uidb64,
+            "token": token
+        }
+        serializer = PasswordResetSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             response = {
