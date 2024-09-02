@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from .models import Category
+from polls.models import Category
 
 
 class CategoryModelTestCase(TestCase):
