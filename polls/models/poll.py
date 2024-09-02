@@ -59,3 +59,4 @@ class Choice(models.Model):
 
     class Meta:
         db_table = "choice"
+        unique_together = ('poll', 'choice_text')
