@@ -39,7 +39,7 @@ class UserProfileSignalTestCase(TestCase):
         self.user_profile.refresh_from_db()
         self.assertEqual(self.user_profile.role, 'Admin')
 
-    def test_manual_user_profile_creation_raises_error(self):
+    def test_duplicate_user_profile_creation_raises_error(self):
         # Attempt to create another UserProfile manually for the same user
         with self.assertRaises(IntegrityError):
             UserProfile.objects.create(
