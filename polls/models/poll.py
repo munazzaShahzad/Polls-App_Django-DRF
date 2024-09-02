@@ -15,8 +15,13 @@ def validate_expiry_date(value):
         raise ValidationError("Expiry date must be at least one day in the future.")
 
 
-def validate_admin_user(user):
-    if user.user_type != 2:
+def validate_admin_user(value):
+    if isinstance(value, int):
+        user = User.objects.filter(id=value).first()
+    else:
+        user = value
+
+    if user is None or user.user_type != 2:
         raise ValidationError("Only admin users can create polls.")
 
 
