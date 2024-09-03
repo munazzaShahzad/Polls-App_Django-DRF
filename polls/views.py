@@ -187,8 +187,13 @@ class PasswordResetRequestAPIView(APIView):
 class PasswordResetAPIView(APIView):
     permission_classes = []
 
-    def post(self, request, *args, **kwargs):
-        serializer = PasswordResetSerializer(data=request.data)
+    def post(self, request, uidb64, token, *args, **kwargs):
+        data = {
+            **request.data,
+            "uidb64": uidb64,
+            "token": token
+        }
+        serializer = PasswordResetSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             response = {
