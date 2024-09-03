@@ -137,6 +137,13 @@ AUTH_USER_MODEL = 'polls.User'
 
 PASSWORD_RESET_TIMEOUT = 600
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-string',
+    }
+}
+
 LOGIN_URL = '/polls/login/'
 LOGIN_REDIRECT_URL = '/polls/api/'
 

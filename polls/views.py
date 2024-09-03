@@ -9,7 +9,6 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -24,6 +23,7 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
                           CategorySerializer, UserLoginSerializer,
                           UserRegisterSerializer, UserProfileSerializer, ChangePasswordSerializer,
                           UserSelfUpdateSerializer, PasswordResetRequestSerializer, PasswordResetSerializer)
+from .serializers import SingleUsePasswordResetTokenGenerator
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
@@ -153,7 +153,7 @@ class ChangePasswordAPIView(APIView):
 class PasswordResetRequestAPIView(APIView):
     permission_classes = []
 
-    password_reset_token = PasswordResetTokenGenerator()
+    password_reset_token = SingleUsePasswordResetTokenGenerator()
 
     def post(self, request, *args, **kwargs):
         serializer = PasswordResetRequestSerializer(data=request.data)
