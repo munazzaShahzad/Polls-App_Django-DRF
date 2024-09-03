@@ -601,11 +601,11 @@ class TagAPIView(APIView):
             tag = get_object_or_404(Tag, pk=pk)
             serializer = TagSerializer(tag)
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
-            tags = Tag.objects.all()
+            tags = Tag.objects.all().order_by('name')
 
             for backend in list(self.filter_backends):
                 tags = backend().filter_queryset(request, tags, self)
@@ -620,7 +620,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -631,7 +631,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -642,7 +642,7 @@ class TagAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             response = {
-                "tag": serializer.data
+                "data": serializer.data
             }
             return Response(response, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
