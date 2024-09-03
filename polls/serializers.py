@@ -18,11 +18,11 @@ class SingleUsePasswordResetTokenGenerator(PasswordResetTokenGenerator):
             if self.is_token_used(token):
                 return False
 
-            self.invalidate_token(user, token)
+            self.invalidate_token(token)
 
         return is_valid
 
-    def invalidate_token(self, user, token):
+    def invalidate_token(self, token):
         cache.set(f'password_reset_token_used_{token}', True, timeout=600)  # 10 minutes
 
     def is_token_used(self, token):
