@@ -135,6 +135,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'polls.User'
 
+PASSWORD_RESET_TIMEOUT = 600
+
 LOGIN_URL = '/polls/login/'
 LOGIN_REDIRECT_URL = '/polls/api/'
 
