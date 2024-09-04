@@ -15,7 +15,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.beat_schedule = {
     'send_poll_results_email': {
         'task': 'polls.tasks.send_poll_results_email',
-        'schedule': crontab(hour="11", minute="59"),
+        'schedule': crontab(hour="23", minute="59"),
     },
 }
 
