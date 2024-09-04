@@ -2,8 +2,9 @@ import re
 
 from django.contrib.auth.models import Group
 from django.contrib.auth.hashers import check_password
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.cache import cache
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -28,6 +29,25 @@ def validate_password(password):
         raise ValidationError({"detail": errors})
 
     return password
+
+
+class SingleUsePasswordResetTokenGenerator(PasswordResetTokenGenerator):
+    def check_token(self, user, token):
+        is_valid = super().check_token(user, token)
+
+        if is_valid:
+            if self.is_token_used(token):
+                return False
+
+            self.invalidate_token(token)
+
+        return is_valid
+
+    def invalidate_token(self, token):
+        cache.set(f'password_reset_token_used_{token}', True, timeout=600)  # 10 minutes
+
+    def is_token_used(self, token):
+        return cache.get(f'password_reset_token_used_{token}', False)
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -155,7 +175,7 @@ class PasswordResetSerializer(serializers.Serializer):
     token = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        password_reset_token = PasswordResetTokenGenerator()
+        password_reset_token = SingleUsePasswordResetTokenGenerator()
 
         if data['new_password1'] != data['new_password2']:
             raise serializers.ValidationError({"password": "Passwords must match."})
