@@ -47,7 +47,7 @@ class Choice(models.Model):
     id = models.AutoField(primary_key=True)
     poll = models.ForeignKey(Poll, related_name='choices', on_delete=models.CASCADE)
     choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
-    votes = models.IntegerField(default=0)
+    vote_count = models.IntegerField(default=0)
 
     def __str__(self):
         return str(self.id) + ': ' + str(self.choice_text)
