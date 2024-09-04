@@ -4,21 +4,27 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
                     PollAPIView, ChoiceAPIView, TagAPIView, CategoryAPIView,
                     ProfileAPIView, GroupAPIView, VoteAPIView, PollResultsAPIView,
-                    ChangePasswordAPIView, UserSelfUpdateAPIView)
+                    ChangePasswordAPIView, UserSelfUpdateAPIView, PasswordResetRequestAPIView,
+                    PasswordResetAPIView, LandingPageAPIView)
 
 app_name = "polls"
 
 urlpatterns = [
-    # Profile
-    path('', ProfileAPIView.as_view(), name='user-profile'),
+    # Landing Page
+    path('', LandingPageAPIView.as_view(), name='landing_page'),
 
     # Authentication
-    path('auth/login/', UserLoginAPIView.as_view(), name='user-login'),
-    path('auth/register/', UserRegisterAPIView.as_view(), name='user-register'),
-    path('auth/logout/', UserLogoutAPIView.as_view(), name='user-logout'),
-    path('auth/refresh/', TokenRefreshView.as_view(), name='user-refresh-access'),
-    path('auth/change_password/', ChangePasswordAPIView.as_view(), name='user-change-password'),
-    path('auth/user_update/', UserSelfUpdateAPIView.as_view(), name='user-self-update'),
+    path('accounts/login/', UserLoginAPIView.as_view(), name='user-login'),
+    path('accounts/signup/', UserRegisterAPIView.as_view(), name='user-register'),
+    path('accounts/logout/', UserLogoutAPIView.as_view(), name='user-logout'),
+    path('accounts/refresh/', TokenRefreshView.as_view(), name='user-refresh-access'),
+    # Change password
+    path('accounts/password/change/', ChangePasswordAPIView.as_view(), name='user-change-password'),
+    # Password reset request
+    path('accounts/password/reset/', PasswordResetRequestAPIView.as_view(), name='password_reset_request'),
+    # Password reset confirmation
+    path('accounts/password/reset/confirm/<str:uidb64>/<str:token>/', PasswordResetAPIView.as_view(),
+         name='password_reset_confirm'),
 
     # Polls
     path('polls/', PollAPIView.as_view(), name='poll-list-create'),
@@ -29,6 +35,10 @@ urlpatterns = [
 
     # Closed Polls Results
     path('poll_results/', PollResultsAPIView.as_view(), name='poll-results'),
+
+    # Profile
+    path('profile/', ProfileAPIView.as_view(), name='user-profile'),
+    path('user_update/', UserSelfUpdateAPIView.as_view(), name='user-self-update'),
 
     # Choices
     path('choices/', ChoiceAPIView.as_view(), name='choice-list-create'),

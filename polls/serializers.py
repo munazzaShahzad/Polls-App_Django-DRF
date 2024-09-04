@@ -1,10 +1,32 @@
 from django.contrib.auth.models import Group
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import check_password
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.cache import cache
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 
 from .models import Tag, Poll, Choice, User, UserProfile, Category
+
+
+class SingleUsePasswordResetTokenGenerator(PasswordResetTokenGenerator):
+    def check_token(self, user, token):
+        is_valid = super().check_token(user, token)
+
+        if is_valid:
+            if self.is_token_used(token):
+                return False
+
+            self.invalidate_token(token)
+
+        return is_valid
+
+    def invalidate_token(self, token):
+        cache.set(f'password_reset_token_used_{token}', True, timeout=600)  # 10 minutes
+
+    def is_token_used(self, token):
+        return cache.get(f'password_reset_token_used_{token}', False)
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -109,6 +131,47 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    new_password1 = serializers.CharField(write_only=True)
+    new_password2 = serializers.CharField(write_only=True)
+    uidb64 = serializers.CharField(write_only=True)
+    token = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        password_reset_token = SingleUsePasswordResetTokenGenerator()
+
+        if data['new_password1'] != data['new_password2']:
+            raise serializers.ValidationError({"password": "Passwords must match."})
+
+        try:
+            uid = urlsafe_base64_decode(data['uidb64']).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({"uidb64": "Invalid token."})
+
+        if not password_reset_token.check_token(user, data['token']):
+            raise serializers.ValidationError({"token": "Invalid or expired token."})
+
+        data['user'] = user
+        return data
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password1'])
+        user.save()
 
 
 class TagSerializer(serializers.ModelSerializer):
