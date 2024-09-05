@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poll Results</title>
+</head>
+<body>
+    <p>Here are some updates of the poll(s) you voted on recently:</p>
+    {% for poll in polls %}
+        <h2>Poll: {{ poll.title }}</h2>
+        <p>Question: {{ poll.question }}</p>
+        <p>Top Choice: {{ poll.top_choice.choice_text }} with {{ poll.top_choice.vote_count }} votes</p>
+        <p>Choices:</p>
+        <ul>
+            {% for choice in poll.choices.all %}
+                <li>{{ choice.choice_text }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+</body>
+</html>
