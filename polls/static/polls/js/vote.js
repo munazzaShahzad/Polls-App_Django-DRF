@@ -6,8 +6,8 @@ var status = "Open";
 fetch(voteApiUrl)
     .then(response => response.json())
     .then(data => {
-        document.getElementById('poll-title').textContent = data.poll.title;
-        document.getElementById('poll-question').textContent = data.poll.question;
+        document.getElementById('poll-title').textContent = data.data.title;
+        document.getElementById('poll-question').textContent = data.data.question;
 
         const choicesList = document.getElementById('choices-list');
         choicesList.innerHTML = '';
@@ -20,7 +20,7 @@ fetch(voteApiUrl)
             document.getElementById('vote-button').style.display = 'none';
             document.getElementById('de-vote-button').style.display = 'none';
             document.getElementById('status').textContent = "Closed";
-            data.poll.choices.forEach(choice => {
+            data.data.choices.forEach(choice => {
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
                 li.innerHTML = `${choice.choice_text} (${choice.vote_count} votes)`;
@@ -28,7 +28,7 @@ fetch(voteApiUrl)
             });
         } else {
             document.getElementById('status').textContent = "Open";
-            data.poll.choices.forEach(choice => {
+            data.data.choices.forEach(choice => {
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
                 li.innerHTML = `<label><input type="radio" name="choice" value="${choice.id}" required>
