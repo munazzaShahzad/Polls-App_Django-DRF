@@ -24,7 +24,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from django_site import settings
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserLoginSerializer,
@@ -32,7 +31,7 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
                           UserSelfUpdateSerializer, PasswordResetRequestSerializer, PasswordResetSerializer)
 from .serializers import SingleUsePasswordResetTokenGenerator
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
-from .tasks import send_password_reset_email
+from .tasks import send_password_reset_email, send_password_change_email, send_welcome_email
 
 
 @login_required
@@ -130,6 +129,8 @@ class UserRegisterAPIView(APIView):
 
             refresh = RefreshToken.for_user(user)
 
+            send_welcome_email.delay(user.email, user.first_name)
+
             response = {
                 "data": {
                     "refresh": str(refresh),
@@ -179,12 +180,16 @@ class ChangePasswordAPIView(APIView):
             serializer.save()
 
             user = request.user
-            logout(request)
+
+            # send email
+            send_password_change_email.delay(user.email, timezone.now())
 
             tokens = OutstandingToken.objects.filter(user=user)
             if tokens.exists():
                 for token in tokens:
                     _, _ = BlacklistedToken.objects.get_or_create(token=token)
+
+            logout(request)
 
             response = {
                 "detail": "Password updated successfully."
