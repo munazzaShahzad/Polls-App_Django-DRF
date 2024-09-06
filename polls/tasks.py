@@ -36,9 +36,8 @@ def send_password_reset_email(to_email, reset_url):
 def send_poll_results_email():
     from polls.models import User, Poll, UserPollHistory
 
-    day = timezone.now().date()
-    start_of_day = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.min.time()))
-    end_of_day = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.max.time()))
+    end_time = timezone.now()
+    start_time = end_time - timezone.timedelta(hours=24)
 
     # users to email
     users = User.objects.all()
@@ -47,10 +46,10 @@ def send_poll_results_email():
         # Get polls where the user has voted today
         voted_polls = UserPollHistory.objects.filter(
             user=user,
-            voting_time__range=(start_of_day, end_of_day)
+            voting_time__range=(start_time, end_time)
         ).values_list('poll_id', flat=True).distinct()
 
-        polls = Poll.objects.filter(id__in=voted_polls, expiry_date__gte=start_of_day).prefetch_related('choices')
+        polls = Poll.objects.filter(id__in=voted_polls, expiry_date__gte=start_time).prefetch_related('choices')
 
         for poll in polls:
             top_choice = poll.choices.order_by('-vote_count')[0]
