@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recommended Polls</title>
+</head>
+<body>
+    <h1>Recommended Polls</h1>
+    <div id="polls-container">
+        {% for poll in polls %}
+            <div class="poll">
+                <a href="{{ base_url }}/vote/{{ poll.id }}">
+                    <h3>{{ poll.title }}</h3>
+                </a>
+                <h4>{{ poll.question }}</h4>
+                <h5>Expires on {{ poll.expiry_date|date:"M. j, Y, g:i a" }} (UTC)</h5>
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
