@@ -1,0 +1,62 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: 'Admin1234!'
+      MYSQL_DATABASE: 'Polls'
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    build: .
+    command: >
+      bash -c "python manage.py makemigrations &&
+               python manage.py migrate &&
+               daphne -b 0.0.0.0 -p 8000 django_site.asgi:application"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_DOCKER=True
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      celery_beat:
+        condition: service_started
+      celery_worker:
+        condition: service_started
+
+  celery_worker:
+    build: .
+    command: celery -A django_site worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - IS_DOCKER=True
+    depends_on:
+      - redis
+      - celery_beat
+
+  celery_beat:
+    build: .
+    command: celery -A django_site beat -l info
+    volumes:
+      - .:/app
+    environment:
+      - IS_DOCKER=True
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  db_data:
