@@ -5,15 +5,15 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import Group
 from django.utils import timezone
-from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.urls import reverse
+from django_filters.rest_framework import DjangoFilterBackend, OrderingFilter
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import SearchFilter
 from rest_framework.reverse import reverse, reverse_lazy
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
@@ -24,7 +24,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from django_site import settings
 from .models import User, Poll, Choice, Category, Tag, UserProfile, UserTagHistory, UserPollHistory
 from .serializers import (GroupSerializer, TagSerializer, PollSerializer, ChoiceSerializer,
                           CategorySerializer, UserLoginSerializer,
@@ -32,8 +31,10 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
                           UserSelfUpdateSerializer, PasswordResetRequestSerializer, PasswordResetSerializer)
 from .serializers import SingleUsePasswordResetTokenGenerator
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
+from .tasks import send_password_reset_email, send_password_change_email, send_welcome_email
 
 
+@login_required
 def vote_view(request, poll_id):
     context = {
         "poll_id": poll_id
@@ -128,6 +129,8 @@ class UserRegisterAPIView(APIView):
 
             refresh = RefreshToken.for_user(user)
 
+            send_welcome_email.delay(user.email, user.first_name)
+
             response = {
                 "data": {
                     "refresh": str(refresh),
@@ -177,12 +180,16 @@ class ChangePasswordAPIView(APIView):
             serializer.save()
 
             user = request.user
-            logout(request)
+
+            # send email
+            send_password_change_email.delay(user.email, timezone.now())
 
             tokens = OutstandingToken.objects.filter(user=user)
             if tokens.exists():
                 for token in tokens:
                     _, _ = BlacklistedToken.objects.get_or_create(token=token)
+
+            logout(request)
 
             response = {
                 "detail": "Password updated successfully."
@@ -208,13 +215,7 @@ class PasswordResetRequestAPIView(APIView):
             )
 
             # Send email
-            send_mail(
-                subject="Password Reset Request",
-                message=f"Click the link to reset your password: {reset_url}",
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+            send_password_reset_email.delay(user.email, reset_url)
 
             response = {
                 "data": "Password reset link sent."
@@ -304,7 +305,7 @@ class PollAPIView(APIView):
             ],
             'top_choice': None
         }
-        
+
         try:
             async_to_sync(channel_layer.group_send)(
                 'poll_results',
@@ -570,7 +571,8 @@ class PollResultsAPIView(APIView):
         user = request.user
         if user.is_authenticated:
             user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
-            user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
+            user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date,
+                                reverse=True)
             user_polls_data = [self.get_poll_data(poll, True) for poll in user_polls]
         else:
             user_polls = []
@@ -610,7 +612,7 @@ class TagAPIView(APIView):
             }
             return Response(response, status=status.HTTP_200_OK)
         else:
-            tags = Tag.objects.all()
+            tags = Tag.objects.all().order_by('name')
 
             for backend in list(self.filter_backends):
                 tags = backend().filter_queryset(request, tags, self)

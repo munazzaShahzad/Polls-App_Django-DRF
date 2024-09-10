@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recommended Polls</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .header {
+            display: flex;
+            align-items: center; /* Align vertically */
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .header img {
+            height: 30px;
+            width: 30px;
+        }
+
+        .header h1 {
+            font-size: 30px;
+            color: #0056b3;
+            margin: 0;
+            padding-left: 10px;
+            line-height: 1;
+        }
+
+        .content p {
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            background: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .poll-item {
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin: 10px;
+        }
+
+        .poll-item h2 {
+            font-size: 20px;
+            margin: 0 0 10px;
+        }
+
+        .poll-item p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .poll-item span {
+            font-style: italic;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 16px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <img src="https://drive.google.com/uc?export=view&id=1L_LX5YHSlUhAVzm0VurWPy89Mx8DUgjl" alt="VoteStream Logo">
+            <h1>VoteStream</h1>
+        </div>
+        <div class="content">
+            <p>Have a look at some poll(s) that might interest you:</p>
+            {% for poll in polls %}
+                <div class="poll-item">
+                    <a href="{{ base_url }}/vote/{{ poll.id }}">
+                        <h2>{{ poll.title }}</h2>
+                    </a>
+                    <p>{{ poll.question }}</p>
+                    <p>Expires on <span>{{ poll.expiry_date|date:"M. j, Y, g:i a" }} (UTC)</span></p>
+                    </div>
+            {% endfor %}
+        </div>
+        <div class="footer">
+            <p>Thank you,<br>The VoteStream Team</p>
+        </div>
+    </div>
+</body>
+</html>
