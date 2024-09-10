@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title id="title">Vote</title>
+    {% load static %}
+</head>
+<body>
+    <span id="poll-id" data-poll-id="{{ poll_id }}" style="display:none;"></span>
+
+    <h1 id="poll-title"></h1>
+    <p id="poll-question"></p>
+
+    <p id="status"></p>
+
+    <ul id="choices-list"></ul>
+
+    <form id="voteForm" method="post">
+        {% csrf_token %}
+        <ul id="vote-choices"></ul>
+        <button id="vote-button" type="submit">Vote</button>
+    </form>
+
+    <script src="{% static 'polls/js/vote.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Poll Results</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'polls/css/poll_results.css' %}">
+</head>
+<body>
+    <h1>Live Poll Results</h1>
+
+    <div class="heading">Polls You Voted In</div>
+    <div id="voted-true" class="grid-container">
+        <!-- Polls with voted=true will be inserted here -->
+    </div>
+
+    <div class="heading">Other Polls</div>
+    <div id="voted-false" class="grid-container">
+        <!-- Polls with voted=false will be inserted here -->
+    </div>
+
+    <script src="{% static 'polls/js/poll_results.js' %}"></script>
+</body>
+</html>

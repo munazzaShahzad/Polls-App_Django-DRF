@@ -4,7 +4,6 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.cache import cache
 from rest_framework import serializers
-from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 
 from .models import Tag, Poll, Choice, User, UserProfile, Category
@@ -88,7 +87,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create(**validated_data)
         user.set_password(password)
         user.save()
-        Token.objects.create(user=user)
         return user
 
 

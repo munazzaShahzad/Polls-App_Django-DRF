@@ -2,13 +2,16 @@ import datetime
 
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import Group
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
+from django.contrib.auth import login, logout
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from rest_framework import permissions, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -25,6 +28,17 @@ from .serializers import (GroupSerializer, TagSerializer, PollSerializer, Choice
                           UserSelfUpdateSerializer, PasswordResetRequestSerializer, PasswordResetSerializer)
 from .serializers import SingleUsePasswordResetTokenGenerator
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
+
+
+def vote_view(request, poll_id):
+    context = {
+        "poll_id": poll_id
+    }
+    return render(request, 'polls/vote.html', context=context)
+
+
+def poll_results_view(request):
+    return render(request, 'polls/poll_results.html')
 
 
 class LandingPageAPIView(APIView):
@@ -57,6 +71,9 @@ class UserLoginAPIView(APIView):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
+
+                login(request, user)  # Log the user in and set session data
+
                 # Blacklist any existing refresh tokens for the user
                 tokens = OutstandingToken.objects.filter(user=user)
                 if tokens.exists():
@@ -90,6 +107,8 @@ class UserRegisterAPIView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
+            login(request, user)  # Log the user in and set session data
+
             refresh = RefreshToken.for_user(user)
 
             response = {
@@ -105,6 +124,9 @@ class UserRegisterAPIView(APIView):
 class UserLogoutAPIView(APIView):
     def post(self, request, *args):
         try:
+            # Handle session logout
+            logout(request)
+
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
             token.blacklist()
@@ -138,6 +160,8 @@ class ChangePasswordAPIView(APIView):
             serializer.save()
 
             user = request.user
+            logout(request)
+
             tokens = OutstandingToken.objects.filter(user=user)
             if tokens.exists():
                 for token in tokens:
@@ -248,6 +272,32 @@ class GroupAPIView(APIView):
 class PollAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
+    def add_poll_to_results_page(self, poll):
+        # add to poll results page
+        channel_layer = get_channel_layer()
+        poll_data = {
+            'id': poll.id,
+            'title': poll.title,
+            'status': "Open",
+            'question': poll.question,
+            'choices': [
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.vote_count}
+                for choice in poll.choices.all()
+            ],
+            'top_choice': None
+        }
+        print(poll_data)
+        try:
+            async_to_sync(channel_layer.group_send)(
+                'poll_results',
+                {
+                    'type': 'new_poll',
+                    'poll_data': poll_data
+                }
+            )
+        except Exception as e:
+            print(f"Error sending message to group: {e}")
+
     def get(self, request, pk=None, *args, **kwargs):
         if pk:
             poll = get_object_or_404(Poll, pk=pk)
@@ -260,8 +310,9 @@ class PollAPIView(APIView):
             open_polls = Poll.objects.filter(expiry_date__gt=datetime.datetime.now())
             open_poll_ser = PollSerializer(open_polls, context={'short': True}, many=True)
 
+            user = request.user
+
             try:
-                user = request.user
                 user_tag_history = user.usertaghistory.tag_history
                 sorted_tags = sorted(user_tag_history.items(), key=lambda x: x[1], reverse=True)[:5]
                 top_tags = [tag_id for tag_id, count in sorted_tags]
@@ -269,9 +320,13 @@ class PollAPIView(APIView):
             except UserTagHistory.DoesNotExist:
                 top_tags = []
 
-            recommended_polls = (Poll.objects.
-                                 filter(Q(expiry_date__gt=datetime.datetime.now()) & Q(tags__in=top_tags)).
-                                 order_by('expiry_date'))[:5]
+            voted_poll_ids = UserPollHistory.objects.filter(user=user).values_list('poll_id', flat=True)
+
+            recommended_polls = Poll.objects.filter(
+                Q(expiry_date__gt=datetime.datetime.now()) &
+                Q(tags__in=top_tags)
+            ).exclude(id__in=voted_poll_ids).distinct().order_by('expiry_date')[:5]
+
             rec_poll_ser = PollSerializer(recommended_polls, context={'short': True}, many=True)
 
             response = {
@@ -287,6 +342,9 @@ class PollAPIView(APIView):
         user = request.user
         if serializer.is_valid():
             serializer.save(created_by=user)
+
+            self.add_poll_to_results_page(serializer.instance)
+
             response = {
                 "data": serializer.data
             }
@@ -393,7 +451,6 @@ class ChoiceAPIView(APIView):
 
 
 class VoteAPIView(APIView):
-
     def get(self, request, poll_id, *args, **kwargs):
         try:
             poll = Poll.objects.get(pk=poll_id)
@@ -403,6 +460,7 @@ class VoteAPIView(APIView):
             }
             if poll.expiry_date < timezone.now():
                 response.update({"status": "Closed"})
+
             return Response(response, status=status.HTTP_200_OK)
         except Poll.DoesNotExist:
             response = {
@@ -428,7 +486,7 @@ class VoteAPIView(APIView):
             response = {
                 "detail": "You have already voted!"
             }
-            return Response(response, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         choice_id = request.data.get('choice_id')
         if choice_id is None:
@@ -461,25 +519,32 @@ class VoteAPIView(APIView):
 class PollResultsAPIView(APIView):
     permission_classes = []
 
-    def get_poll_data(self, poll):
+    def get_poll_data(self, poll, voted):
         choices = poll.choices.all()
         top_choice = choices.order_by('-vote_count')[0]
 
+        poll_status = "Open"
+        if poll.expiry_date < timezone.now():
+            poll_status = "Closed"
+
         poll_data = {
+            "id": poll.id,
+            "status": poll_status,
+            "voted": voted,
             "title": poll.title,
-            "questions": poll.question,
+            "question": poll.question,
             "choices": [
-                {"choice text": choice.choice_text, "vote_count": choice.vote_count}
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.vote_count}
                 for choice in choices
             ],
-            "top choice": top_choice.choice_text if top_choice else None
+            "top_choice": top_choice.choice_text if top_choice else None
         }
 
         return poll_data
 
     def get(self, request):
         user = request.user
-        polls = Poll.objects.filter(expiry_date__lte=datetime.datetime.now()).order_by('-expiry_date')
+        polls = Poll.objects.all().order_by('-expiry_date')
         user_polls_history = UserPollHistory.objects.filter(user=user, poll__in=polls)
         user_polls = sorted([history.poll for history in user_polls_history], key=lambda x: x.expiry_date, reverse=True)
 
