@@ -4,22 +4,26 @@
     <meta charset="UTF-8">
     <title id="title">Vote</title>
     {% load static %}
+    <link rel="stylesheet" href="{% static 'polls/css/vote.css' %}">
 </head>
 <body>
     <span id="poll-id" data-poll-id="{{ poll_id }}" style="display:none;"></span>
 
     <h1 id="poll-title"></h1>
-    <p id="poll-question"></p>
 
-    <p id="status"></p>
+    <p id="status-heading">Status: <span id="status"></span></p>
 
-    <ul id="choices-list"></ul>
+    <div class="question-block">
+        <p id="poll-question"></p>
+        <ul id="choices-list"></ul>
 
-    <form id="voteForm" method="post">
-        {% csrf_token %}
-        <ul id="vote-choices"></ul>
-        <button id="vote-button" type="submit">Vote</button>
-    </form>
+        <form id="voteForm" method="post">
+            {% csrf_token %}
+            <ul id="vote-choices"></ul>
+            <button id="vote-button" type="submit">Vote</button>
+            <button id="de-vote-button" type="button">De-Vote</button>
+        </form>
+    </div>
 
     <script src="{% static 'polls/js/vote.js' %}"></script>
 </body>

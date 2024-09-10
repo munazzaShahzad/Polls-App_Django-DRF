@@ -140,10 +140,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             choiceItem.textContent = `${data.choice_text} - ${data.votes} votes`;
 
             if (data.voted) {
-                const votedTrueContainer = document.getElementById('voted-true');
-                votedTrueContainer.appendChild(pollElement);
-                fetchOtherPolls(currentPage);
+                if (!data.up_voted) {
+                    const votedFalseContainer = document.getElementById('voted-false');
+                    votedFalseContainer.appendChild(pollElement);
+                    fetchOtherPolls(currentPage);
+                } else {
+                    const votedTrueContainer = document.getElementById('voted-true');
+                    votedTrueContainer.appendChild(pollElement);
+                    fetchOtherPolls(currentPage);
+                }
             }
+
         }
     }
 

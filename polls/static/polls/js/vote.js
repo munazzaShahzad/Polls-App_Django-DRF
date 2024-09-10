@@ -18,7 +18,8 @@ fetch(voteApiUrl)
         if (data.status === "Closed"){
             status = "Closed";
             document.getElementById('vote-button').style.display = 'none';
-            document.getElementById('status').textContent = "Status: Closed";
+            document.getElementById('de-vote-button').style.display = 'none';
+            document.getElementById('status').textContent = "Closed";
             data.poll.choices.forEach(choice => {
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
@@ -26,6 +27,7 @@ fetch(voteApiUrl)
                 choicesList.appendChild(li);
             });
         } else {
+            document.getElementById('status').textContent = "Open";
             data.poll.choices.forEach(choice => {
                 const li = document.createElement('li');
                 li.setAttribute('id', `choice_${choice.id}`);
@@ -71,10 +73,20 @@ if (status === "Closed") {
         const selectedChoice = document.querySelector('input[name="choice"]:checked');
         if (selectedChoice) {
             socket.send(JSON.stringify({
+                'action': 'vote',
                 'choice_id': selectedChoice.value
             }));
         } else {
             alert('Please select a choice before voting.');
         }
+    };
+
+    document.getElementById('de-vote-button').onclick = function() {
+        const selectedChoice = document.querySelector('input[name="choice"]:checked');
+        choice_id = (selectedChoice) ? selectedChoice.value : 0;
+        socket.send(JSON.stringify({
+            'action': 'de-vote',
+            'choice_id': choice_id
+        }));
     };
 }

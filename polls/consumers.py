@@ -29,8 +29,9 @@ class VoteConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         choice_id = data['choice_id']
+        action = data['action']
 
-        response = await database_sync_to_async(self.process_vote)(choice_id)
+        response = await database_sync_to_async(self.process_vote)(choice_id, action == "vote")
 
         if "error" in response.keys():
             await self.send(json.dumps(response))
@@ -44,37 +45,53 @@ class VoteConsumer(AsyncWebsocketConsumer):
         choice_id = event['choice_id']
         vote_count = event['vote_count']
         choice_text = event['choice_text']
+        up_voted = event['up_voted']
 
         # Send the updated choice data to WebSocket
         await self.send(text_data=json.dumps({
+            'up_voted': up_voted,
             'choice_id': choice_id,
             'choice_text': choice_text,
             'votes': vote_count
         }))
 
-    def process_vote(self, choice_id):
+    def process_vote(self, choice_id, up_voted):
         try:
             poll = Poll.objects.get(pk=self.poll_id)
-            choice = Choice.objects.get(pk=choice_id, poll=poll)
+            user_choice = None
 
-            try:
-                UserPollHistory.objects.create(user=self.user, poll=poll, choice=choice)
-            except IntegrityError:
-                return {"error": "You have already voted!"}
-
-            choice.vote_count += 1
-            choice.save()
+            if up_voted:
+                try:
+                    choice = Choice.objects.get(pk=choice_id, poll=poll)
+                    UserPollHistory.objects.create(user=self.user, poll=poll, choice=choice)
+                    choice.vote_count += 1
+                    choice.save()
+                    user_choice = choice
+                except Choice.DoesNotExist:
+                    return {"error": "Invalid choice!"}
+                except IntegrityError:
+                    return {"error": "You have already voted!"}
+            else:
+                try:
+                    poll_history = UserPollHistory.objects.get(user=self.user, poll=poll)
+                    poll_history.choice.vote_count -= 1
+                    poll_history.choice.save()
+                    user_choice = poll_history.choice
+                    poll_history.delete()
+                except UserPollHistory.DoesNotExist:
+                    return {"error": "You have not voted yet!"}
 
             return {
                     'type': 'choice_update',
                     'user': self.user.username,
-                    'choice_id': choice.id,
-                    'choice_text': choice.choice_text,
-                    'vote_count': choice.vote_count
+                    'up_voted': up_voted,
+                    'choice_id': user_choice.id,
+                    'choice_text': user_choice.choice_text,
+                    'vote_count': user_choice.vote_count
             }
 
-        except (Poll.DoesNotExist, Choice.DoesNotExist):
-            return {"error": "Not found!"}
+        except Poll.DoesNotExist:
+            return {"error": "Poll Not found!"}
 
 
 class PollResultsConsumer(AsyncWebsocketConsumer):
@@ -105,12 +122,14 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
         vote_count = event['vote_count']
         choice_text = event['choice_text']
         voter = event['user']
+        up_voted = event['up_voted']
 
         top_choice = await database_sync_to_async(self.get_top_choice)(self.poll_id)
 
         await self.send(text_data=json.dumps({
             'poll_id': self.poll_id,
             'voted': self.user.username == voter,
+            'up_voted': up_voted,
             'choice_id': choice_id,
             'choice_text': choice_text,
             'votes': vote_count,
