@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework.schemas import get_schema_view
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (UserLoginAPIView, UserRegisterAPIView, UserLogoutAPIView,
@@ -11,6 +12,15 @@ from .views import vote_view, poll_results_view
 app_name = "polls"
 
 urlpatterns = [
+    # schemas
+    path(
+        "openapi/",
+        get_schema_view(
+            title="Polls App", description="API for all schemas", version="1.0.0"
+        ),
+        name="openapi-schema",
+    ),
+
     # Landing Page
     path('', LandingPageAPIView.as_view(), name='landing_page'),
 
