@@ -15,8 +15,13 @@ def validate_expiry_date(value):
         raise ValidationError("Expiry date must be at least one day in the future.")
 
 
-def validate_admin_user(user):
-    if user.user_type != 2:
+def validate_admin_user(value):
+    if isinstance(value, int):
+        user = User.objects.filter(id=value).first()
+    else:
+        user = value
+
+    if user is None or user.user_type != 2:
         raise ValidationError("Only admin users can create polls.")
 
 
@@ -46,7 +51,7 @@ class Choice(models.Model):
     """
     id = models.AutoField(primary_key=True)
     poll = models.ForeignKey(Poll, related_name='choices', on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(3)])
+    choice_text = models.CharField(max_length=200, validators=[MinLengthValidator(2)])
     vote_count = models.IntegerField(default=0)
 
     def __str__(self):
@@ -54,3 +59,4 @@ class Choice(models.Model):
 
     class Meta:
         db_table = "choice"
+        unique_together = ('poll', 'choice_text')

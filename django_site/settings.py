@@ -28,10 +28,7 @@ SECRET_KEY = 'django-insecure-kj231@$3=y2(**-q2ue&7vcq%)-6_apsb$m6bt8x4#@x9n3l8^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',  # localhost
-    '4a8f-116-58-44-74.ngrok-free.app',
-]
+ALLOWED_HOSTS = ['192.168.6.91', '192.168.1.5']
 
 # Application definition
 
@@ -44,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admindocs',
+    'celery',
     'polls',
     'rest_framework',
     'django_filters',
@@ -128,7 +126,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 STATICFILES_DIRS = [
@@ -142,6 +140,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'polls.User'
 
+LOGIN_URL = '/accounts/login/'
+
 PASSWORD_RESET_TIMEOUT = 600
 
 CACHES = {
@@ -151,8 +151,7 @@ CACHES = {
     }
 }
 
-LOGIN_URL = '/polls/login/'
-LOGIN_REDIRECT_URL = '/polls/api/'
+LOGIN_REDIRECT_URL = '/polls/'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -194,3 +193,8 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_TIMEZONE = 'UTC'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

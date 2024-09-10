@@ -25,7 +25,8 @@ class UserProfile(models.Model):
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     full_name = f"{instance.first_name} {instance.last_name}".strip()
     if created:
-        UserProfile.objects.create(user=instance, name=full_name, email=instance.email, role=instance.get_user_type_display())
+        UserProfile.objects.create(user=instance, name=full_name, email=instance.email,
+                                   role=instance.get_user_type_display().title())
     else:
         profile, profile_created = UserProfile.objects.get_or_create(user=instance)
         profile.name = full_name
