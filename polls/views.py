@@ -304,7 +304,7 @@ class PollAPIView(APIView):
             ],
             'top_choice': None
         }
-        print(poll_data)
+        
         try:
             async_to_sync(channel_layer.group_send)(
                 'poll_results',
@@ -539,7 +539,6 @@ class VoteAPIView(APIView):
 
 
 class PollResultsAPIView(APIView):
-    pagination_class = CustomPagination
     permission_classes = []
 
     def get_poll_data(self, poll, voted):
@@ -584,15 +583,10 @@ class PollResultsAPIView(APIView):
                 continue
             other_polls_data.append(self.get_poll_data(poll, False))
 
-        paginator = self.pagination_class()
-
-        paginated_other_polls = paginator.paginate_queryset(other_polls_data, request, view=self)
-        other_polls_paginated_response = paginator.get_paginated_response(paginated_other_polls)
-
         response = {
             "data": {
                 "user_polls": user_polls_data,
-                "other_polls": other_polls_paginated_response.data
+                "other_polls": other_polls_data
             }
         }
 

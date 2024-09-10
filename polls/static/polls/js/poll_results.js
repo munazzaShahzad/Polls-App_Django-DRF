@@ -6,66 +6,69 @@ document.addEventListener('DOMContentLoaded', async function() {
     const nextButton = document.getElementById('next-button');
 
     let currentPage = 1;
-    let nextPage = false;
+    const itemsPerPage = 9;
+    let userPolls = [];
+    let allOtherPolls = [];
 
     prevButton.addEventListener('click', () => {
         if (currentPage > 1) {
-            fetchOtherPolls(currentPage - 1);
+            currentPage--;
+            displayPage(currentPage);
         }
     });
 
     nextButton.addEventListener('click', () => {
-        if (nextPage) {
-            fetchOtherPolls(currentPage + 1);
+        const maxPage = Math.ceil(allOtherPolls.length / itemsPerPage);
+        if (currentPage < maxPage) {
+            currentPage++;
+            displayPage(currentPage);
         }
     });
 
     try {
         const response = await fetch('/api/poll_results/');
         const data = await response.json();
-        const user_polls = data.data.user_polls;
+        userPolls = data.data.user_polls;
 
-        user_polls.forEach(poll => {
+        userPolls.forEach(poll => {
             renderPoll(poll);
             connectToPollGroup(poll.id);
         });
+
+        allOtherPolls = data.data.other_polls;
+
+        // Connect all other polls to their WebSocket groups
+        allOtherPolls.forEach(poll => {
+            connectToPollGroup(poll.id);
+        });
+
+        // Display the first page of other polls
+        displayPage(1);
     } catch (error) {
-        console.error('Error fetching user polls data:', error);
+        console.error('Error fetching polls data:', error);
     }
 
-    async function fetchOtherPolls(page)
-    {
-        try {
-            const response = await fetch(`/api/poll_results/?page=${page}`);
-            const data = await response.json();
-            const other_polls = data.data.other_polls;
+    function displayPage(page) {
+        votedFalseContainer.innerHTML = '';
 
-            votedFalseContainer.innerHTML = '';
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pollsToDisplay = allOtherPolls.slice(startIndex, endIndex);
 
-            other_polls.results.forEach(poll => {
-                renderPoll(poll);
-                connectToPollGroup(poll.id);
-            });
+        pollsToDisplay.forEach(poll => {
+            renderPoll(poll);
+        });
 
-            currentPage = page;
-
-            const nextLink = other_polls.links && other_polls.links.next;
-            const prevLink = other_polls.links && other_polls.links.previous;
-
-            // Update button states based on links
-            prevButton.disabled = !prevLink;
-            nextButton.disabled = !nextLink;
-            nextPage = nextLink;
-
-        } catch (error) {
-            console.error('Error fetching other polls data:', error);
-        }
+        // Update button states
+        const maxPage = Math.ceil(allOtherPolls.length / itemsPerPage);
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === maxPage;
     }
 
     function renderPoll(poll) {
         const pollElement = document.createElement('div');
         pollElement.className = 'poll';
-        pollElement.setAttribute('id',`poll_${poll.id}`);
+        pollElement.setAttribute('id', `poll_${poll.id}`);
 
         const pollTitle = document.createElement('h3');
         pollTitle.textContent = poll.title;
@@ -105,16 +108,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     newPollSocket.onmessage = function(event) {
         const poll = JSON.parse(event.data);
-        renderPoll(poll);
+        allOtherPolls.push(poll);
         connectToPollGroup(poll.id);
-        fetchOtherPolls(currentPage);
+        const maxPage = Math.ceil(allOtherPolls.length / itemsPerPage);
+        if (currentPage === maxPage) {
+            displayPage(currentPage);
+        }
     };
 
     newPollSocket.onclose = function(event) {
         console.log('New Poll WebSocket connection closed:', event);
     };
 
-    // Function to connect to a WebSocket group for a poll
     function connectToPollGroup(pollId) {
         const socket = new WebSocket(`ws://${window.location.host}/ws/poll_results/${pollId}/`);
 
@@ -128,33 +133,93 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
     }
 
-    // Function to update poll data upon receiving WebSocket message
     function updatePoll(data) {
-        const pollElement = document.getElementById(`poll_${data.poll_id}`);
-        if (pollElement) {
-            const topChoiceElement = pollElement.querySelector('.top-choice');
-            topChoiceElement.textContent = `Top choice: ${data.top_choice}`;
+        const pollId = Number(data.poll_id);
+        const choiceId = Number(data.choice_id);
+        const newVotes = Number(data.votes);
+        const newTopChoice = data.top_choice;
 
-            const choiceId = Number(data.choice_id);
-            const choiceItem = document.querySelector(`#choice_${choiceId}`);
-            choiceItem.textContent = `${data.choice_text} - ${data.votes} votes`;
+        let index = -1;
 
+        for (let i = 0; i < allOtherPolls.length; i++) {
+            if (allOtherPolls[i].id === pollId) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            const choices = allOtherPolls[index].choices;
+            for (let j = 0; j < choices.length; j++) {
+                if (choices[j].id === choiceId) {
+                    choices[j].vote_count = newVotes;
+                }
+            }
+            allOtherPolls[index].top_choice = newTopChoice;
+
+            // Check if the poll is currently displayed on the current page
+            const pollElement = document.getElementById(`poll_${pollId}`);
+            if (pollElement) {
+                const topChoiceElement = pollElement.querySelector('.top-choice');
+                topChoiceElement.textContent = `Top choice: ${newTopChoice}`;
+
+                const choiceItem = document.querySelector(`#choice_${choiceId}`);
+                if (choiceItem) {
+                    choiceItem.textContent = `${data.choice_text} - ${newVotes} votes`;
+                }
+            }
             if (data.voted) {
-                if (!data.up_voted) {
-                    const votedFalseContainer = document.getElementById('voted-false');
-                    votedFalseContainer.appendChild(pollElement);
-                    fetchOtherPolls(currentPage);
-                } else {
-                    const votedTrueContainer = document.getElementById('voted-true');
-                    votedTrueContainer.appendChild(pollElement);
-                    fetchOtherPolls(currentPage);
+                if (data.up_voted) {
+                    allOtherPolls[index].voted = true;
+                    const poll = allOtherPolls.splice(index, 1)[0];
+                    userPolls.push(poll);
+                    if (pollElement) {
+                        const votedTrueContainer = document.getElementById('voted-true');
+                        votedTrueContainer.appendChild(pollElement);
+                        displayPage(currentPage);
+                    } else {
+                        renderPoll(poll);
+                    }
+                }
+            }
+        } else {
+            let index = -1;
+            for (let i = 0; i < userPolls.length; i++) {
+                if (userPolls[i].id === pollId) {
+                    index = i;
+                    break;
                 }
             }
 
+            const choices = userPolls[index].choices;
+            for (let j = 0; j < choices.length; j++) {
+                if (choices[j].id === choiceId) {
+                    choices[j].vote_count = newVotes;
+                }
+            }
+            userPolls[index].top_choice = newTopChoice;
+
+            const pollElement = document.getElementById(`poll_${pollId}`);
+            if (pollElement) {
+                const topChoiceElement = pollElement.querySelector('.top-choice');
+                topChoiceElement.textContent = `Top choice: ${newTopChoice}`;
+
+                const choiceItem = document.querySelector(`#choice_${choiceId}`);
+                if (choiceItem) {
+                    choiceItem.textContent = `${data.choice_text} - ${newVotes} votes`;
+                }
+            }
+            if (data.voted) {
+                if (!data.up_voted) {
+                    userPolls[index].voted = false;
+                    const poll = userPolls.splice(index, 1)[0];
+                    allOtherPolls.push(poll);
+                    if (pollElement) {
+                        pollElement.parentNode.removeChild(pollElement);
+                    }
+                    displayPage(currentPage);
+                }
+            }
         }
     }
-
-    // Initial fetch
-    fetchOtherPolls(1);
-
 });
