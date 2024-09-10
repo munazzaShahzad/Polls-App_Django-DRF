@@ -281,7 +281,7 @@ class PollAPIView(APIView):
             'status': "Open",
             'question': poll.question,
             'choices': [
-                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.votes}
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.vote_count}
                 for choice in poll.choices.all()
             ],
             'top_choice': None
@@ -534,7 +534,7 @@ class PollResultsAPIView(APIView):
             "title": poll.title,
             "question": poll.question,
             "choices": [
-                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.votes}
+                {"id": choice.id, "choice_text": choice.choice_text, "votes": choice.vote_count}
                 for choice in choices
             ],
             "top_choice": top_choice.choice_text if top_choice else None

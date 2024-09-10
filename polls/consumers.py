@@ -62,7 +62,7 @@ class VoteConsumer(AsyncWebsocketConsumer):
             except IntegrityError:
                 return {"error": "You have already voted!"}
 
-            choice.votes += 1
+            choice.vote_count += 1
             choice.save()
 
             return {
@@ -70,7 +70,7 @@ class VoteConsumer(AsyncWebsocketConsumer):
                     'user': self.user.username,
                     'choice_id': choice.id,
                     'choice_text': choice.choice_text,
-                    'votes': choice.votes
+                    'votes': choice.vote_count
             }
 
         except (Poll.DoesNotExist, Choice.DoesNotExist):
@@ -120,7 +120,7 @@ class PollResultsConsumer(AsyncWebsocketConsumer):
     def get_top_choice(self, poll_id):
         poll = Poll.objects.get(pk=poll_id)
         choices = poll.choices.all()
-        top_choice = choices.order_by('-votes')[0]
+        top_choice = choices.order_by('-vote_count')[0]
 
         return top_choice.choice_text
 
