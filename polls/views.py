@@ -10,6 +10,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django_filters.rest_framework import DjangoFilterBackend
@@ -34,6 +35,7 @@ from .serializers import SingleUsePasswordResetTokenGenerator
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 
 
+@login_required
 def vote_view(request, poll_id):
     context = {
         "poll_id": poll_id
